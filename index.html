@@ -7,7 +7,15 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://cdn.jsdelivr.net/npm/soundtouchjs@0.1.30/dist/soundtouch.min.js"></script>
+    
+    <!-- แก้ไขปัญหา Library: เปลี่ยนมาใช้ ES Modules เพื่อความเสถียร 100% -->
+    <script type="module">
+        import { SoundTouch, SimpleFilter } from 'https://cdn.jsdelivr.net/npm/soundtouchjs@0.1.30/+esm';
+        // ผูกตัวแปรไว้กับ window เพื่อให้ระบบหลักเรียกใช้งานได้ชัวร์ๆ
+        window.JarvisSoundTouch = SoundTouch;
+        window.JarvisSimpleFilter = SimpleFilter;
+        console.log("✅ Jarvis Audio Engine Loaded Successfully!");
+    </script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center justify-start p-4 md:p-8 font-sans">
 
@@ -80,9 +88,7 @@
 
     <script>
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .then(reg => console.log('PWA SW Registered'))
-                .catch(err => console.error('PWA Error:', err));
+            navigator.serviceWorker.register('sw.js').catch(err => console.error('PWA Error:', err));
         }
 
         let audioCtx, soundTouch, scriptNode, pannerNode, analyserNode, audioBuffer;
@@ -155,7 +161,7 @@
             
             const file = playlist[index];
             ui.trackName.innerText = `🎵 ${file.name}`;
-            ui.noAudio.innerText = "กำลังแปลงไฟล์เสียง... (Decoding)";
+            ui.noAudio.innerText = "กำลังเตรียมไฟล์... (Decoding)";
             ui.noAudio.style.display = "flex";
 
             try {
@@ -172,11 +178,11 @@
                 
                 globalPosition = 0;
                 ui.progress.value = 0;
-                soundTouch = null; // รีเซ็ตแบบคลีนๆ
+                soundTouch = null; 
 
             } catch (err) {
                 console.error(err);
-                alert("เกิดข้อผิดพลาดในการโหลดไฟล์เสียง กรุณาลองไฟล์อื่นครับ");
+                alert("ไฟล์นี้เข้ารหัสไม่รองรับ หรือไฟล์เสีย กรุณาลองไฟล์อื่นครับ");
                 ui.noAudio.innerText = "ไฟล์มีปัญหา";
             }
         }
@@ -187,12 +193,12 @@
             try {
                 if (audioCtx.state === 'suspended') audioCtx.resume();
 
-                // ดึงคลาสอย่างปลอดภัย ป้องกันบั๊ก Cannot read properties
-                const ST = (window.soundtouch && window.soundtouch.SoundTouch) || window.SoundTouch;
-                const SF = (window.soundtouch && window.soundtouch.SimpleFilter) || window.SimpleFilter;
+                // เรียกใช้จาก Global ESM ที่โหลดไว้ด้านบนสุด
+                const ST = window.JarvisSoundTouch;
+                const SF = window.JarvisSimpleFilter;
 
                 if (!ST || !SF) {
-                    alert("ไม่สามารถดึงระบบประมวลผลเสียง (Library) ได้ กรุณารีเฟรชหน้าเว็บครับ");
+                    alert("ระบบประมวลผลเสียงยังโหลดไม่เสร็จ (อินเทอร์เน็ตอาจจะช้า) กรุณารอสัก 2-3 วินาทีแล้วกดเล่นใหม่ครับ");
                     return;
                 }
 
@@ -237,8 +243,9 @@
                         let sL = samples[i * 2];
                         let sR = samples[i * 2 + 1];
 
+                        // โหมดตัดเสียงร้อง: ลด Gain ลงนิดหน่อยหลังหักล้างเพื่อกันเสียงแตก (Clipping)
                         if (isVocalRemoverOn) {
-                            let vocalRemoved = (sL - sR);
+                            let vocalRemoved = (sL - sR) * 0.5;
                             outL[i] = vocalRemoved;
                             outR[i] = vocalRemoved;
                         } else {
@@ -304,7 +311,7 @@
             globalPosition = 0;
             ui.progress.value = 0;
             ui.timeCurr.innerText = "0:00";
-            soundTouch = null; // ทิ้งข้อมูลเก่า 100%
+            soundTouch = null; 
         }
 
         ui.play.addEventListener('click', playAudio);
@@ -316,10 +323,10 @@
                 const percent = parseFloat(e.target.value) / 100;
                 globalPosition = Math.floor(percent * audioBuffer.length);
                 ui.timeCurr.innerText = formatTime(globalPosition / audioCtx.sampleRate);
-                soundTouch = null; // บังคับสร้างประมวลผลใหม่
+                soundTouch = null; 
                 if (isPlaying) {
                     pauseAudio();
-                    playAudio(); // กระตุกเล่นต่อทันทีเมื่อปล่อยเมาส์
+                    playAudio(); 
                 }
             }
         });
