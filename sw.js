@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jarvis-audio-lab-v2';
+const CACHE_NAME = 'jarvis-audio-lab-v3';
 const urlsToCache = [
   './index.html',
   './manifest.json',
