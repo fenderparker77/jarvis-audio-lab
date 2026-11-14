@@ -8,13 +8,10 @@
     <meta name="theme-color" content="#0f172a">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     
-    <!-- แก้ไขปัญหา Library: เปลี่ยนมาใช้ ES Modules เพื่อความเสถียร 100% -->
     <script type="module">
         import { SoundTouch, SimpleFilter } from 'https://cdn.jsdelivr.net/npm/soundtouchjs@0.1.30/+esm';
-        // ผูกตัวแปรไว้กับ window เพื่อให้ระบบหลักเรียกใช้งานได้ชัวร์ๆ
         window.JarvisSoundTouch = SoundTouch;
         window.JarvisSimpleFilter = SimpleFilter;
-        console.log("✅ Jarvis Audio Engine Loaded Successfully!");
     </script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center justify-start p-4 md:p-8 font-sans">
@@ -65,16 +62,27 @@
             <input type="range" id="sliderPitch" min="-12" max="12" step="1" value="0" class="w-full accent-cyan-400">
         </div>
 
+        <!-- โหมดตัดเสียงร้อง -->
         <button id="btnVocal" class="w-full bg-purple-700 hover:bg-purple-600 text-white font-bold py-3 px-4 rounded-xl mb-6 transition shadow-lg shadow-purple-900/50 flex justify-center items-center gap-2">
             🎤 เปิดโหมดตัดเสียงร้อง (Vocal Remover: OFF)
         </button>
 
-        <div class="mb-6">
-            <span class="text-sm font-medium text-slate-400 block mb-3 text-center">Audio Output Channels</span>
-            <div class="grid grid-cols-3 gap-2 bg-slate-900 p-1 rounded-lg border border-slate-700">
-                <button id="modeNormal" class="btn-mode bg-cyan-600 text-white font-semibold py-2 rounded-md text-xs transition">Stereo</button>
-                <button id="modeLeft" class="btn-mode text-slate-400 font-semibold py-2 rounded-md text-xs transition hover:text-white">Left Only</button>
-                <button id="modeRight" class="btn-mode text-slate-400 font-semibold py-2 rounded-md text-xs transition hover:text-white">Right Only</button>
+        <!-- โหมด Panning (แก้ไขใหม่) -->
+        <div class="mb-6 bg-slate-700/30 p-4 rounded-xl border border-slate-600">
+            <div class="flex justify-between mb-3">
+                <span class="text-sm font-medium text-slate-300">Audio Panning (แยกไลน์ซ้าย-ขวา)</span>
+                <span id="panVal" class="text-sm font-mono text-cyan-400 bg-slate-800 px-2 py-1 rounded">Center</span>
+            </div>
+            <div class="flex items-center gap-3 mb-4">
+                <span class="text-xs font-bold text-slate-400">L</span>
+                <input type="range" id="sliderPan" min="-1" max="1" step="0.05" value="0" class="w-full accent-cyan-400">
+                <span class="text-xs font-bold text-slate-400">R</span>
+            </div>
+            <!-- ปุ่มลัดสำหรับนักดนตรี -->
+            <div class="grid grid-cols-3 gap-2">
+                <button id="btnPanLeft" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs py-2 rounded-lg transition border border-slate-600">Hard L (ซ้ายสุด)</button>
+                <button id="btnPanCenter" class="bg-cyan-900 hover:bg-cyan-800 text-cyan-100 text-xs py-2 rounded-lg transition border border-cyan-700 font-semibold">Center</button>
+                <button id="btnPanRight" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs py-2 rounded-lg transition border border-slate-600">Hard R (ขวาสุด)</button>
             </div>
         </div>
 
@@ -112,13 +120,16 @@
             progress: document.getElementById('progressBar'),
             timeCurr: document.getElementById('timeCurrent'),
             timeTot: document.getElementById('timeTotal'),
-            modeNormal: document.getElementById('modeNormal'),
-            modeLeft: document.getElementById('modeLeft'),
-            modeRight: document.getElementById('modeRight'),
             canvas: document.getElementById('visualizer'),
             noAudio: document.getElementById('noAudioText'),
             playlistUI: document.getElementById('playlistUI'),
-            trackName: document.getElementById('currentTrackName')
+            trackName: document.getElementById('currentTrackName'),
+            // UI Panning
+            pan: document.getElementById('sliderPan'),
+            panVal: document.getElementById('panVal'),
+            btnPanLeft: document.getElementById('btnPanLeft'),
+            btnPanCenter: document.getElementById('btnPanCenter'),
+            btnPanRight: document.getElementById('btnPanRight')
         };
         const canvasCtx = ui.canvas.getContext('2d');
 
@@ -193,7 +204,6 @@
             try {
                 if (audioCtx.state === 'suspended') audioCtx.resume();
 
-                // เรียกใช้จาก Global ESM ที่โหลดไว้ด้านบนสุด
                 const ST = window.JarvisSoundTouch;
                 const SF = window.JarvisSimpleFilter;
 
@@ -243,7 +253,6 @@
                         let sL = samples[i * 2];
                         let sR = samples[i * 2 + 1];
 
-                        // โหมดตัดเสียงร้อง: ลด Gain ลงนิดหน่อยหลังหักล้างเพื่อกันเสียงแตก (Clipping)
                         if (isVocalRemoverOn) {
                             let vocalRemoved = (sL - sR) * 0.5;
                             outL[i] = vocalRemoved;
@@ -272,8 +281,9 @@
                     }
                 };
 
+                // ดึงค่า Panning จาก Slider ตอนกด Play
                 pannerNode = audioCtx.createStereoPanner();
-                applyPannerMode();
+                pannerNode.pan.value = parseFloat(ui.pan.value);
 
                 analyserNode = audioCtx.createAnalyser();
                 analyserNode.fftSize = 256;
@@ -355,27 +365,53 @@
             }
         });
 
-        function applyPannerMode() {
-            if (!pannerNode) return;
-            if (ui.modeLeft.classList.contains('bg-cyan-600')) pannerNode.pan.value = -1;
-            else if (ui.modeRight.classList.contains('bg-cyan-600')) pannerNode.pan.value = 1;
-            else pannerNode.pan.value = 0;
-        }
+        // --- ระบบ Panning (อัปเดตใหม่) ---
+        function updatePanUI(val) {
+            ui.pan.value = val;
+            if (val === 0) ui.panVal.innerText = "Center";
+            else if (val < 0) ui.panVal.innerText = `L ${Math.round(Math.abs(val) * 100)}%`;
+            else ui.panVal.innerText = `R ${Math.round(val * 100)}%`;
 
-        function setMode(btn, panValue) {
-            [ui.modeNormal, ui.modeLeft, ui.modeRight].forEach(b => {
-                b.classList.remove('bg-cyan-600', 'text-white');
-                b.classList.add('text-slate-400');
+            // อัปเดตเสียงแบบ Real-time ถ้ากำลังเล่นอยู่
+            if (pannerNode) {
+                pannerNode.pan.value = val;
+            }
+
+            // จัดการสีปุ่มลัดให้รู้ว่ากำลังกดปุ่มไหนอยู่
+            [ui.btnPanLeft, ui.btnPanCenter, ui.btnPanRight].forEach(btn => {
+                btn.classList.replace('bg-cyan-900', 'bg-slate-800');
+                btn.classList.replace('text-cyan-100', 'text-slate-300');
+                btn.classList.replace('border-cyan-700', 'border-slate-600');
+                btn.classList.remove('font-semibold');
             });
-            btn.classList.add('bg-cyan-600', 'text-white');
-            btn.classList.remove('text-slate-400');
-            if (pannerNode) pannerNode.pan.value = panValue;
+
+            if (val === -1) {
+                ui.btnPanLeft.classList.replace('bg-slate-800', 'bg-cyan-900');
+                ui.btnPanLeft.classList.replace('text-slate-300', 'text-cyan-100');
+                ui.btnPanLeft.classList.replace('border-slate-600', 'border-cyan-700');
+                ui.btnPanLeft.classList.add('font-semibold');
+            } else if (val === 1) {
+                ui.btnPanRight.classList.replace('bg-slate-800', 'bg-cyan-900');
+                ui.btnPanRight.classList.replace('text-slate-300', 'text-cyan-100');
+                ui.btnPanRight.classList.replace('border-slate-600', 'border-cyan-700');
+                ui.btnPanRight.classList.add('font-semibold');
+            } else if (val === 0) {
+                ui.btnPanCenter.classList.replace('bg-slate-800', 'bg-cyan-900');
+                ui.btnPanCenter.classList.replace('text-slate-300', 'text-cyan-100');
+                ui.btnPanCenter.classList.replace('border-slate-600', 'border-cyan-700');
+                ui.btnPanCenter.classList.add('font-semibold');
+            }
         }
 
-        ui.modeNormal.addEventListener('click', () => setMode(ui.modeNormal, 0));
-        ui.modeLeft.addEventListener('click', () => setMode(ui.modeLeft, -1));
-        ui.modeRight.addEventListener('click', () => setMode(ui.modeRight, 1));
+        ui.pan.addEventListener('input', (e) => {
+            updatePanUI(parseFloat(e.target.value));
+        });
 
+        ui.btnPanLeft.addEventListener('click', () => updatePanUI(-1));
+        ui.btnPanCenter.addEventListener('click', () => updatePanUI(0));
+        ui.btnPanRight.addEventListener('click', () => updatePanUI(1));
+
+        // Visualizer
         function drawVisualizer() {
             if (!analyserNode || !isPlaying) return;
             ui.canvas.width = ui.canvas.clientWidth;
