@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jarvis Audio Lab - Pro Edition</title>
+    <title>Jarvis Audio Lab - Studio Pro</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
@@ -17,11 +17,11 @@
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center justify-start p-4 md:p-8 font-sans">
 
     <div class="bg-slate-800 p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-lg border border-slate-700">
-        <h1 class="text-2xl font-bold mb-2 text-center text-cyan-400 font-mono tracking-wider">JARVIS AUDIO LAB</h1>
-        <p class="text-center text-slate-400 text-xs mb-6 font-mono">VERIFIED PRO MUSICIAN EDITION</p>
+        <h1 class="text-2xl font-bold mb-1 text-center text-cyan-400 font-mono tracking-wider">JARVIS AUDIO LAB</h1>
+        <p class="text-center text-slate-400 text-xs mb-5 font-mono">STUDIO PRO • AUTO KEY & A-B LOOP</p>
         
         <!-- กราฟิกคลื่นเสียง -->
-        <div class="w-full bg-slate-900 rounded-xl mb-6 overflow-hidden border border-slate-700 h-24 relative">
+        <div class="w-full bg-slate-900 rounded-xl mb-5 overflow-hidden border border-slate-700 h-24 relative">
             <canvas id="visualizer" class="w-full h-full"></canvas>
             <div id="noAudioText" class="absolute inset-0 flex items-center justify-center text-slate-600 text-sm font-medium">รอเลือกไฟล์เพลง...</div>
         </div>
@@ -32,16 +32,45 @@
             <input type="file" id="audioFile" accept="audio/*" multiple class="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-cyan-500 file:text-slate-900 hover:file:bg-cyan-400 cursor-pointer transition">
         </div>
 
-        <!-- ชื่อเพลงปัจจุบัน -->
-        <div class="text-center mb-4 text-sm font-semibold text-emerald-400 truncate h-6" id="currentTrackName"></div>
+        <!-- ชื่อเพลง + ป้ายแสดงคีย์เพลงอัตโนมัติ (Auto Key Badge) -->
+        <div class="bg-slate-900/80 border border-slate-700/80 rounded-xl p-3 mb-5 flex flex-col gap-1.5">
+            <div class="text-sm font-semibold text-emerald-400 truncate text-center" id="currentTrackName">ยังไม่ได้เลือกเพลง</div>
+            <div class="flex items-center justify-center gap-2 text-xs font-mono" id="keyDisplayRow">
+                <span class="bg-slate-800 text-slate-400 px-2.5 py-1 rounded-md border border-slate-700">
+                    Original: <strong id="origKeyText" class="text-slate-200">--</strong>
+                </span>
+                <span class="text-slate-500">➔</span>
+                <span class="bg-cyan-950/80 text-cyan-300 px-2.5 py-1 rounded-md border border-cyan-700/70">
+                    Playing Key: <strong id="currKeyText" class="text-cyan-400 font-bold">--</strong>
+                </span>
+            </div>
+        </div>
 
-        <!-- แถบเวลา -->
-        <div class="mb-6">
-            <div class="flex justify-between text-xs text-slate-400 mb-2 font-mono">
+        <!-- แถบเวลา + ไฮไลต์ช่วง A-B Loop -->
+        <div class="mb-3">
+            <div class="flex justify-between text-xs text-slate-400 mb-1.5 font-mono">
                 <span id="timeCurrent">0:00</span>
+                <span id="loopStatusText" class="text-amber-400 font-semibold hidden">🔁 A-B LOOP ACTIVE</span>
                 <span id="timeTotal">0:00</span>
             </div>
-            <input type="range" id="progressBar" min="0" max="100" value="0" step="0.1" class="w-full accent-cyan-400 cursor-pointer disabled:opacity-50" disabled>
+            <div class="relative w-full flex items-center">
+                <!-- แถบไฮไลต์ช่วง A-B ด้านหลัง Slider -->
+                <div id="abHighlight" class="absolute h-2 bg-amber-500/40 border-x-2 border-amber-400 rounded pointer-events-none hidden" style="left: 0%; width: 0%;"></div>
+                <input type="range" id="progressBar" min="0" max="100" value="0" step="0.05" class="w-full accent-cyan-400 cursor-pointer disabled:opacity-50 relative z-10" disabled>
+            </div>
+        </div>
+
+        <!-- ระบบ A-B Loop (มาร์กจุดวนซ้ำท่อนโซโล่) -->
+        <div class="grid grid-cols-3 gap-2 mb-6 bg-slate-900/60 p-2 rounded-xl border border-slate-700/70">
+            <button id="btnSetA" class="bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-mono font-semibold py-2 px-2 rounded-lg transition border border-slate-700 disabled:opacity-40" disabled>
+                [ A: --:-- ]
+            </button>
+            <button id="btnSetB" class="bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-mono font-semibold py-2 px-2 rounded-lg transition border border-slate-700 disabled:opacity-40" disabled>
+                [ B: --:-- ]
+            </button>
+            <button id="btnClearLoop" class="bg-slate-800 hover:bg-rose-900/60 text-slate-400 hover:text-rose-300 text-xs font-semibold py-2 px-2 rounded-lg transition border border-slate-700 disabled:opacity-40" disabled>
+                ✖ ล้างลูป
+            </button>
         </div>
 
         <!-- ปุ่มควบคุมหลัก -->
@@ -112,6 +141,145 @@
             navigator.serviceWorker.register('sw.js').catch(err => console.error('PWA Error:', err));
         }
 
+        // ==========================================
+        // 1. ระบบตรวจจับคีย์เพลงอัตโนมัติ (DSP Key Engine)
+        // ==========================================
+        const NOTE_NAMES = ['C', 'C# / Db', 'D', 'D# / Eb', 'E', 'F', 'F# / Gb', 'G', 'G# / Ab', 'A', 'A# / Bb', 'B'];
+        // Krumhansl-Kessler Key Profiles
+        const MAJOR_PROFILE = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
+        const MINOR_PROFILE = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
+
+        function computeFFT(real, imag) {
+            const n = real.length;
+            let j = 0;
+            for (let i = 0; i < n; i++) {
+                if (i < j) {
+                    [real[i], real[j]] = [real[j], real[i]];
+                    [imag[i], imag[j]] = [imag[j], imag[i]];
+                }
+                let m = n >> 1;
+                while (m >= 1 && j >= m) {
+                    j -= m;
+                    m >>= 1;
+                }
+                j += m;
+            }
+            for (let size = 2; size <= n; size <<= 1) {
+                const half = size >> 1;
+                const theta = (-2 * Math.PI) / size;
+                const wStepR = Math.cos(theta);
+                const wStepI = Math.sin(theta);
+                for (let i = 0; i < n; i += size) {
+                    let wR = 1, wI = 0;
+                    for (let k = 0; k < half; k++) {
+                        const evenIdx = i + k;
+                        const oddIdx = evenIdx + half;
+                        const tR = wR * real[oddIdx] - wI * imag[oddIdx];
+                        const tI = wR * imag[oddIdx] + wI * real[oddIdx];
+                        real[oddIdx] = real[evenIdx] - tR;
+                        imag[oddIdx] = imag[evenIdx] - tI;
+                        real[evenIdx] += tR;
+                        imag[evenIdx] += tI;
+                        const nextWR = wR * wStepR - wI * wStepI;
+                        wI = wR * wStepI + wI * wStepR;
+                        wR = nextWR;
+                    }
+                }
+            }
+        }
+
+        function pearsonCorrelation(x, y) {
+            const n = x.length;
+            let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
+            for (let i = 0; i < n; i++) {
+                sumX += x[i];
+                sumY += y[i];
+                sumXY += x[i] * y[i];
+                sumX2 += x[i] * x[i];
+                sumY2 += y[i] * y[i];
+            }
+            const num = n * sumXY - sumX * sumY;
+            const den = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+            return den === 0 ? 0 : num / den;
+        }
+
+        function detectSongKey(buffer) {
+            const ch0 = buffer.getChannelData(0);
+            const ch1 = buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : ch0;
+            const sr = buffer.sampleRate;
+
+            // Downsample เหลือประมาณ 4410Hz เพื่อวิเคราะห์ความถี่ดนตรีได้ไวและละเอียด
+            const factor = Math.max(1, Math.floor(sr / 4410));
+            const effSr = sr / factor;
+            const fftSize = 4096;
+            const chroma = new Float64Array(12);
+
+            // สุ่มวิเคราะห์ 32 ช่วงจากส่วนกลางของเพลง (20% ถึง 80%) เลี่ยงช่วงอินโทรเงียบ
+            const startIdx = Math.floor(buffer.length * 0.2);
+            const endIdx = Math.floor(buffer.length * 0.8) - fftSize * factor;
+            if (endIdx <= startIdx) return { root: 0, scale: 'Major' };
+
+            const numFrames = 32;
+            const step = Math.max(fftSize * factor, Math.floor((endIdx - startIdx) / numFrames));
+
+            const real = new Float32Array(fftSize);
+            const imag = new Float32Array(fftSize);
+            const hann = new Float32Array(fftSize);
+            for (let i = 0; i < fftSize; i++) {
+                hann[i] = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (fftSize - 1)));
+            }
+
+            for (let pos = startIdx; pos < endIdx; pos += step) {
+                for (let i = 0; i < fftSize; i++) {
+                    const idx = pos + i * factor;
+                    const mono = (ch0[idx] + ch1[idx]) * 0.5;
+                    real[i] = mono * hann[i];
+                    imag[i] = 0;
+                }
+                computeFFT(real, imag);
+
+                // แปลงพลังงานความถี่ช่วง 65Hz (C2) ถึง 1800Hz เข้าสู่ 12 โน้ต (Chromagram)
+                const minBin = Math.floor((65 * fftSize) / effSr);
+                const maxBin = Math.min(fftSize / 2, Math.floor((1800 * fftSize) / effSr));
+                for (let b = minBin; b < maxBin; b++) {
+                    const mag = Math.sqrt(real[b] * real[b] + imag[b] * imag[b]);
+                    const freq = (b * effSr) / fftSize;
+                    const midi = Math.round(12 * Math.log2(freq / 440) + 69);
+                    const pitchClass = ((midi % 12) + 12) % 12;
+                    chroma[pitchClass] += mag;
+                }
+            }
+
+            // เทียบหาค่าสหสัมพันธ์สูงสุดกับสเกล Major และ Minor ทั้ง 12 คีย์
+            let bestCorr = -Infinity;
+            let bestRoot = 0;
+            let bestScale = 'Major';
+
+            for (let root = 0; root < 12; root++) {
+                const shiftedChroma = new Array(12);
+                for (let i = 0; i < 12; i++) {
+                    shiftedChroma[i] = chroma[(root + i) % 12];
+                }
+                const corrMaj = pearsonCorrelation(shiftedChroma, MAJOR_PROFILE);
+                if (corrMaj > bestCorr) {
+                    bestCorr = corrMaj;
+                    bestRoot = root;
+                    bestScale = 'Major';
+                }
+                const corrMin = pearsonCorrelation(shiftedChroma, MINOR_PROFILE);
+                if (corrMin > bestCorr) {
+                    bestCorr = corrMin;
+                    bestRoot = root;
+                    bestScale = 'Minor';
+                }
+            }
+
+            return { root: bestRoot, scale: bestScale };
+        }
+
+        // ==========================================
+        // 2. ตัวแปรหลักของระบบเสียงและ UI
+        // ==========================================
         let audioCtx, soundTouch, filter, scriptNode, pannerNode, analyserNode, audioBuffer;
         let globalPosition = 0; 
         let isPlaying = false;
@@ -119,6 +287,14 @@
         let isVocalRemoverOn = false;
         let playlist = [];
         let currentTrackIndex = -1;
+
+        // ข้อมูลคีย์เพลงปัจจุบัน
+        let detectedKey = null; // { root: 0..11, scale: 'Major' | 'Minor' }
+
+        // ข้อมูล A-B Loop
+        let loopPointA = null; // เก็บตำแหน่งเป็น Sample Frame
+        let loopPointB = null; // เก็บตำแหน่งเป็น Sample Frame
+        let isABLoopActive = false;
 
         const ui = {
             file: document.getElementById('audioFile'),
@@ -139,6 +315,15 @@
             noAudio: document.getElementById('noAudioText'),
             playlistUI: document.getElementById('playlistUI'),
             trackName: document.getElementById('currentTrackName'),
+            origKeyText: document.getElementById('origKeyText'),
+            currKeyText: document.getElementById('currKeyText'),
+            // A-B Loop UI
+            btnSetA: document.getElementById('btnSetA'),
+            btnSetB: document.getElementById('btnSetB'),
+            btnClearLoop: document.getElementById('btnClearLoop'),
+            loopStatusText: document.getElementById('loopStatusText'),
+            abHighlight: document.getElementById('abHighlight'),
+            // Panning UI
             pan: document.getElementById('sliderPan'),
             panVal: document.getElementById('panVal'),
             btnPanLeft: document.getElementById('btnPanLeft'),
@@ -154,6 +339,98 @@
             return `${m}:${s.toString().padStart(2, '0')}`;
         }
 
+        function updateKeyDisplay() {
+            if (!detectedKey) {
+                ui.origKeyText.innerText = '--';
+                ui.currKeyText.innerText = '--';
+                return;
+            }
+            const semis = parseInt(ui.pitch.value);
+            const origName = `${NOTE_NAMES[detectedKey.root]} ${detectedKey.scale}`;
+            const newRoot = ((detectedKey.root + semis) % 12 + 12) % 12;
+            const currName = `${NOTE_NAMES[newRoot]} ${detectedKey.scale}`;
+
+            ui.origKeyText.innerText = origName;
+            ui.currKeyText.innerText = semis === 0 ? currName : `${currName} (${semis > 0 ? '+' + semis : semis})`;
+        }
+
+        // ==========================================
+        // 3. ระบบจัดการ A-B Loop
+        // ==========================================
+        function clearABLoop() {
+            loopPointA = null;
+            loopPointB = null;
+            isABLoopActive = false;
+            ui.btnSetA.innerText = '[ A: --:-- ]';
+            ui.btnSetB.innerText = '[ B: --:-- ]';
+            ui.btnSetA.classList.remove('bg-amber-900/60', 'border-amber-500');
+            ui.btnSetB.classList.remove('bg-amber-900/60', 'border-amber-500');
+            ui.loopStatusText.classList.add('hidden');
+            ui.abHighlight.classList.add('hidden');
+        }
+
+        function updateABHighlight() {
+            if (!audioBuffer || loopPointA === null) return;
+            const startPct = (loopPointA / audioBuffer.length) * 100;
+            ui.abHighlight.classList.remove('hidden');
+            if (loopPointB !== null && loopPointB > loopPointA) {
+                const endPct = (loopPointB / audioBuffer.length) * 100;
+                ui.abHighlight.style.left = `${startPct}%`;
+                ui.abHighlight.style.width = `${endPct - startPct}%`;
+            } else {
+                ui.abHighlight.style.left = `${startPct}%`;
+                ui.abHighlight.style.width = `1%`;
+            }
+        }
+
+        ui.btnSetA.addEventListener('click', () => {
+            if (!audioBuffer) return;
+            loopPointA = globalPosition;
+            const sec = loopPointA / audioBuffer.sampleRate;
+            ui.btnSetA.innerText = `[ A: ${formatTime(sec)} ]`;
+            ui.btnSetA.classList.add('bg-amber-900/60', 'border-amber-500');
+            
+            // ถ้าจุด B อยู่ก่อนจุด A ให้รีเซ็ตจุด B
+            if (loopPointB !== null && loopPointB <= loopPointA) {
+                loopPointB = null;
+                isABLoopActive = false;
+                ui.btnSetB.innerText = '[ B: --:-- ]';
+                ui.btnSetB.classList.remove('bg-amber-900/60', 'border-amber-500');
+                ui.loopStatusText.classList.add('hidden');
+            }
+            updateABHighlight();
+        });
+
+        ui.btnSetB.addEventListener('click', () => {
+            if (!audioBuffer) return;
+            if (loopPointA === null) {
+                // ถ้ายังไม่กด A ให้ถือว่า A เริ่มที่ 0:00
+                loopPointA = 0;
+                ui.btnSetA.innerText = '[ A: 0:00 ]';
+                ui.btnSetA.classList.add('bg-amber-900/60', 'border-amber-500');
+            }
+            if (globalPosition <= loopPointA) {
+                alert("จุด B ต้องอยู่หลังจุด A ครับบอส!");
+                return;
+            }
+            loopPointB = globalPosition;
+            isABLoopActive = true;
+            const sec = loopPointB / audioBuffer.sampleRate;
+            ui.btnSetB.innerText = `[ B: ${formatTime(sec)} ]`;
+            ui.btnSetB.classList.add('bg-amber-900/60', 'border-amber-500');
+            ui.loopStatusText.classList.remove('hidden');
+            updateABHighlight();
+
+            // วนกลับไปจุด A ทันทีเมื่อกดตั้งจุด B เสร็จ
+            globalPosition = loopPointA;
+            if (filter) filter.sourcePosition = loopPointA;
+        });
+
+        ui.btnClearLoop.addEventListener('click', clearABLoop);
+
+        // ==========================================
+        // 4. การโหลดไฟล์และ Playlist
+        // ==========================================
         ui.file.addEventListener('change', (e) => {
             const files = Array.from(e.target.files);
             if (files.length === 0) return;
@@ -181,12 +458,15 @@
             if (index < 0 || index >= playlist.length) return;
             
             hardStopAudio(); 
+            clearABLoop();
             currentTrackIndex = index;
             renderPlaylist();
             
             const file = playlist[index];
             ui.trackName.innerText = `🎵 ${file.name}`;
-            ui.noAudio.innerText = "กำลังเตรียมไฟล์... (Decoding)";
+            ui.origKeyText.innerText = 'Analyzing...';
+            ui.currKeyText.innerText = 'Analyzing...';
+            ui.noAudio.innerText = "กำลังเตรียมไฟล์และวิเคราะห์คีย์เพลง...";
             ui.noAudio.style.display = "flex";
 
             try {
@@ -194,11 +474,18 @@
                 const arrayBuffer = await file.arrayBuffer();
                 audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
                 
+                // วิเคราะห์หาคีย์และสเกลของเพลงอัตโนมัติ
+                detectedKey = detectSongKey(audioBuffer);
+                updateKeyDisplay();
+
                 ui.timeTot.innerText = formatTime(audioBuffer.duration);
                 ui.timeCurr.innerText = "0:00";
                 ui.play.disabled = false;
                 ui.stop.disabled = false;
                 ui.progress.disabled = false;
+                ui.btnSetA.disabled = false;
+                ui.btnSetB.disabled = false;
+                ui.btnClearLoop.disabled = false;
                 ui.noAudio.style.display = "none";
                 
                 globalPosition = 0;
@@ -213,6 +500,9 @@
             }
         }
 
+        // ==========================================
+        // 5. เครื่องยนต์เล่นเสียง (Audio Processing)
+        // ==========================================
         async function playAudio() {
             if (!audioBuffer || isPlaying) return;
             
@@ -255,7 +545,6 @@
                 };
 
                 filter = new SF(source, soundTouch);
-                // ซิงค์ตำแหน่งเริ่มต้นให้ตรงกับจุดที่ Pause หรือ Seek ไว้เสมอ
                 filter.sourcePosition = globalPosition;
 
                 scriptNode = audioCtx.createScriptProcessor(4096, 0, 2);
@@ -267,8 +556,15 @@
                     const samples = new Float32Array(outL.length * 2);
                     
                     const framesExtracted = filter.extract(samples, outL.length);
-                    // อัปเดตตำแหน่งจริงจากตัวแปรภายในของ SimpleFilter
                     globalPosition = filter.sourcePosition;
+
+                    // ตรวจสอบการทำงานของ A-B Loop
+                    if (isABLoopActive && loopPointA !== null && loopPointB !== null) {
+                        if (globalPosition >= loopPointB) {
+                            globalPosition = loopPointA;
+                            filter.sourcePosition = loopPointA;
+                        }
+                    }
 
                     for (let i = 0; i < outL.length; i++) {
                         let sL = samples[i * 2];
@@ -294,7 +590,7 @@
                         });
                     }
 
-                    if (framesExtracted === 0 || globalPosition >= audioBuffer.length) {
+                    if (!isABLoopActive && (framesExtracted === 0 || globalPosition >= audioBuffer.length)) {
                         hardStopAudio();
                         if (currentTrackIndex < playlist.length - 1) {
                             loadTrack(currentTrackIndex + 1).then(() => playAudio());
@@ -338,9 +634,11 @@
 
         function hardStopAudio() {
             pauseAudio();
-            globalPosition = 0;
-            ui.progress.value = 0;
-            ui.timeCurr.innerText = "0:00";
+            // ถ้าระบบ A-B Loop เปิดอยู่ เวลากด Stop ให้กลับไปรอที่จุด A แทน 0:00
+            const resetPos = (isABLoopActive && loopPointA !== null) ? loopPointA : 0;
+            globalPosition = resetPos;
+            ui.progress.value = audioBuffer ? (resetPos / audioBuffer.length) * 100 : 0;
+            ui.timeCurr.innerText = audioBuffer ? formatTime(resetPos / audioBuffer.sampleRate) : "0:00";
             soundTouch = null;
             filter = null;
         }
@@ -349,7 +647,6 @@
         ui.pause.addEventListener('click', pauseAudio);
         ui.stop.addEventListener('click', hardStopAudio);
 
-        // เลื่อนแถบเวลา (Seek) แบบเรียลไทม์
         ui.progress.addEventListener('input', (e) => {
             if (audioBuffer) {
                 const percent = parseFloat(e.target.value) / 100;
@@ -362,7 +659,6 @@
             }
         });
 
-        // ควบคุมและรีเซ็ต Tempo
         function setTempo(val) {
             ui.tempo.value = val;
             ui.tempoVal.innerText = val.toFixed(2) + 'x';
@@ -371,18 +667,17 @@
         ui.tempo.addEventListener('input', (e) => setTempo(parseFloat(e.target.value)));
         ui.resetTempo.addEventListener('click', () => setTempo(1.0));
 
-        // ควบคุมและรีเซ็ต Key / Pitch
         function setPitch(val) {
             ui.pitch.value = val;
             ui.pitchVal.innerText = val > 0 ? '+' + val : val;
             if (soundTouch) {
                 soundTouch.pitch = Math.pow(2, val / 12);
             }
+            updateKeyDisplay(); // อัปเดตป้ายบอกชื่อคีย์ปัจจุบันทันที
         }
         ui.pitch.addEventListener('input', (e) => setPitch(parseInt(e.target.value)));
         ui.resetPitch.addEventListener('click', () => setPitch(0));
 
-        // โหมดตัดเสียงร้อง
         ui.vocal.addEventListener('click', () => {
             isVocalRemoverOn = !isVocalRemoverOn;
             ui.vocal.innerText = isVocalRemoverOn ? '🎤 โหมดตัดเสียงร้อง (Vocal Remover: ON)' : '🎤 เปิดโหมดตัดเสียงร้อง (Vocal Remover: OFF)';
@@ -395,7 +690,6 @@
             }
         });
 
-        // ระบบ Panning
         function updatePanUI(val) {
             ui.pan.value = val;
             if (val === 0) ui.panVal.innerText = "Center";
@@ -436,7 +730,6 @@
         ui.btnPanCenter.addEventListener('click', () => updatePanUI(0));
         ui.btnPanRight.addEventListener('click', () => updatePanUI(1));
 
-        // Visualizer
         function drawVisualizer() {
             if (!analyserNode || !isPlaying) return;
             ui.canvas.width = ui.canvas.clientWidth;
