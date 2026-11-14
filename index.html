@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jarvis Audio Lab - PWA Edition</title>
+    <title>Jarvis Audio Lab - Pro Edition</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
@@ -18,20 +18,24 @@
 
     <div class="bg-slate-800 p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-lg border border-slate-700">
         <h1 class="text-2xl font-bold mb-2 text-center text-cyan-400 font-mono tracking-wider">JARVIS AUDIO LAB</h1>
-        <p class="text-center text-slate-400 text-xs mb-6 font-mono">PRO MUSICIAN & PWA EDITION</p>
+        <p class="text-center text-slate-400 text-xs mb-6 font-mono">VERIFIED PRO MUSICIAN EDITION</p>
         
+        <!-- กราฟิกคลื่นเสียง -->
         <div class="w-full bg-slate-900 rounded-xl mb-6 overflow-hidden border border-slate-700 h-24 relative">
             <canvas id="visualizer" class="w-full h-full"></canvas>
             <div id="noAudioText" class="absolute inset-0 flex items-center justify-center text-slate-600 text-sm font-medium">รอเลือกไฟล์เพลง...</div>
         </div>
 
+        <!-- เลือกไฟล์เข้าคลัง -->
         <div class="mb-4">
             <label class="block text-sm font-medium mb-2 text-slate-300">เพิ่มไฟล์เพลงเข้าคลัง (เลือกได้หลายไฟล์)</label>
             <input type="file" id="audioFile" accept="audio/*" multiple class="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-cyan-500 file:text-slate-900 hover:file:bg-cyan-400 cursor-pointer transition">
         </div>
 
+        <!-- ชื่อเพลงปัจจุบัน -->
         <div class="text-center mb-4 text-sm font-semibold text-emerald-400 truncate h-6" id="currentTrackName"></div>
 
+        <!-- แถบเวลา -->
         <div class="mb-6">
             <div class="flex justify-between text-xs text-slate-400 mb-2 font-mono">
                 <span id="timeCurrent">0:00</span>
@@ -40,24 +44,33 @@
             <input type="range" id="progressBar" min="0" max="100" value="0" step="0.1" class="w-full accent-cyan-400 cursor-pointer disabled:opacity-50" disabled>
         </div>
 
+        <!-- ปุ่มควบคุมหลัก -->
         <div class="grid grid-cols-3 gap-3 mb-6">
             <button id="btnPlay" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-2 rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2" disabled>▶ เล่น</button>
             <button id="btnPause" class="bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 px-2 rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2" disabled>⏸ พัก</button>
             <button id="btnStop" class="bg-rose-700 hover:bg-rose-600 text-white font-bold py-3 px-2 rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2" disabled>⏹ หยุด</button>
         </div>
 
+        <!-- ควบคุม Tempo -->
         <div class="mb-4 bg-slate-700/30 p-4 rounded-xl">
-            <div class="flex justify-between mb-2">
+            <div class="flex justify-between items-center mb-2">
                 <span class="text-sm font-medium text-slate-300">Tempo (ความเร็ว)</span>
-                <span id="tempoVal" class="text-sm font-mono text-cyan-400 bg-slate-800 px-2 py-1 rounded">1.00x</span>
+                <div class="flex items-center gap-2">
+                    <button id="resetTempo" class="text-xs text-slate-400 hover:text-white bg-slate-800 px-2 py-1 rounded border border-slate-600">Reset</button>
+                    <span id="tempoVal" class="text-sm font-mono text-cyan-400 bg-slate-800 px-2 py-1 rounded">1.00x</span>
+                </div>
             </div>
             <input type="range" id="sliderTempo" min="0.5" max="1.5" step="0.05" value="1.0" class="w-full accent-cyan-400">
         </div>
 
+        <!-- ควบคุม Key -->
         <div class="mb-4 bg-slate-700/30 p-4 rounded-xl">
-            <div class="flex justify-between mb-2">
+            <div class="flex justify-between items-center mb-2">
                 <span class="text-sm font-medium text-slate-300">Key (คีย์ / Semitones)</span>
-                <span id="pitchVal" class="text-sm font-mono text-cyan-400 bg-slate-800 px-2 py-1 rounded">0</span>
+                <div class="flex items-center gap-2">
+                    <button id="resetPitch" class="text-xs text-slate-400 hover:text-white bg-slate-800 px-2 py-1 rounded border border-slate-600">Reset</button>
+                    <span id="pitchVal" class="text-sm font-mono text-cyan-400 bg-slate-800 px-2 py-1 rounded">0</span>
+                </div>
             </div>
             <input type="range" id="sliderPitch" min="-12" max="12" step="1" value="0" class="w-full accent-cyan-400">
         </div>
@@ -67,7 +80,7 @@
             🎤 เปิดโหมดตัดเสียงร้อง (Vocal Remover: OFF)
         </button>
 
-        <!-- โหมด Panning (แก้ไขใหม่) -->
+        <!-- โหมด Panning L/R -->
         <div class="mb-6 bg-slate-700/30 p-4 rounded-xl border border-slate-600">
             <div class="flex justify-between mb-3">
                 <span class="text-sm font-medium text-slate-300">Audio Panning (แยกไลน์ซ้าย-ขวา)</span>
@@ -78,14 +91,14 @@
                 <input type="range" id="sliderPan" min="-1" max="1" step="0.05" value="0" class="w-full accent-cyan-400">
                 <span class="text-xs font-bold text-slate-400">R</span>
             </div>
-            <!-- ปุ่มลัดสำหรับนักดนตรี -->
             <div class="grid grid-cols-3 gap-2">
-                <button id="btnPanLeft" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs py-2 rounded-lg transition border border-slate-600">Hard L (ซ้ายสุด)</button>
+                <button id="btnPanLeft" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs py-2 rounded-lg transition border border-slate-600">Hard L</button>
                 <button id="btnPanCenter" class="bg-cyan-900 hover:bg-cyan-800 text-cyan-100 text-xs py-2 rounded-lg transition border border-cyan-700 font-semibold">Center</button>
-                <button id="btnPanRight" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs py-2 rounded-lg transition border border-slate-600">Hard R (ขวาสุด)</button>
+                <button id="btnPanRight" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs py-2 rounded-lg transition border border-slate-600">Hard R</button>
             </div>
         </div>
 
+        <!-- คลังเพลง -->
         <div class="bg-slate-900 rounded-xl border border-slate-700 p-4 h-48 overflow-y-auto">
             <h3 class="text-xs font-bold text-cyan-500 mb-3 tracking-widest uppercase">SONG LIBRARY PLAYLIST</h3>
             <ul id="playlistUI" class="space-y-2">
@@ -99,7 +112,7 @@
             navigator.serviceWorker.register('sw.js').catch(err => console.error('PWA Error:', err));
         }
 
-        let audioCtx, soundTouch, scriptNode, pannerNode, analyserNode, audioBuffer;
+        let audioCtx, soundTouch, filter, scriptNode, pannerNode, analyserNode, audioBuffer;
         let globalPosition = 0; 
         let isPlaying = false;
         let animationId;
@@ -117,6 +130,8 @@
             pitch: document.getElementById('sliderPitch'),
             tempoVal: document.getElementById('tempoVal'),
             pitchVal: document.getElementById('pitchVal'),
+            resetTempo: document.getElementById('resetTempo'),
+            resetPitch: document.getElementById('resetPitch'),
             progress: document.getElementById('progressBar'),
             timeCurr: document.getElementById('timeCurrent'),
             timeTot: document.getElementById('timeTotal'),
@@ -124,7 +139,6 @@
             noAudio: document.getElementById('noAudioText'),
             playlistUI: document.getElementById('playlistUI'),
             trackName: document.getElementById('currentTrackName'),
-            // UI Panning
             pan: document.getElementById('sliderPan'),
             panVal: document.getElementById('panVal'),
             btnPanLeft: document.getElementById('btnPanLeft'),
@@ -189,7 +203,8 @@
                 
                 globalPosition = 0;
                 ui.progress.value = 0;
-                soundTouch = null; 
+                soundTouch = null;
+                filter = null;
 
             } catch (err) {
                 console.error(err);
@@ -198,17 +213,19 @@
             }
         }
 
-        function playAudio() {
+        async function playAudio() {
             if (!audioBuffer || isPlaying) return;
             
             try {
-                if (audioCtx.state === 'suspended') audioCtx.resume();
+                if (audioCtx.state === 'suspended') {
+                    await audioCtx.resume();
+                }
 
                 const ST = window.JarvisSoundTouch;
                 const SF = window.JarvisSimpleFilter;
 
                 if (!ST || !SF) {
-                    alert("ระบบประมวลผลเสียงยังโหลดไม่เสร็จ (อินเทอร์เน็ตอาจจะช้า) กรุณารอสัก 2-3 วินาทีแล้วกดเล่นใหม่ครับ");
+                    alert("ระบบประมวลผลเสียงยังโหลดไม่เสร็จ กรุณารอสักครู่แล้วลองใหม่ครับ");
                     return;
                 }
 
@@ -217,7 +234,8 @@
                 }
                 
                 soundTouch.tempo = parseFloat(ui.tempo.value);
-                soundTouch.pitchSemis = parseInt(ui.pitch.value);
+                const semis = parseInt(ui.pitch.value);
+                soundTouch.pitch = Math.pow(2, semis / 12);
 
                 const source = {
                     extract: function (target, numFrames, position) {
@@ -236,7 +254,9 @@
                     }
                 };
 
-                const filter = new SF(source, soundTouch);
+                filter = new SF(source, soundTouch);
+                // ซิงค์ตำแหน่งเริ่มต้นให้ตรงกับจุดที่ Pause หรือ Seek ไว้เสมอ
+                filter.sourcePosition = globalPosition;
 
                 scriptNode = audioCtx.createScriptProcessor(4096, 0, 2);
                 scriptNode.onaudioprocess = function (e) {
@@ -246,8 +266,9 @@
                     const outR = e.outputBuffer.getChannelData(1);
                     const samples = new Float32Array(outL.length * 2);
                     
-                    const framesExtracted = filter.extract(samples, outL.length, globalPosition);
-                    globalPosition += framesExtracted;
+                    const framesExtracted = filter.extract(samples, outL.length);
+                    // อัปเดตตำแหน่งจริงจากตัวแปรภายในของ SimpleFilter
+                    globalPosition = filter.sourcePosition;
 
                     for (let i = 0; i < outL.length; i++) {
                         let sL = samples[i * 2];
@@ -263,12 +284,12 @@
                         }
                     }
 
-                    const currentSec = globalPosition / audioCtx.sampleRate;
+                    const currentSec = globalPosition / audioBuffer.sampleRate;
                     const percent = (globalPosition / audioBuffer.length) * 100;
                     
-                    if (Math.random() < 0.2) { 
+                    if (Math.random() < 0.25) { 
                         requestAnimationFrame(() => {
-                            ui.progress.value = percent;
+                            ui.progress.value = Math.min(100, percent);
                             ui.timeCurr.innerText = formatTime(currentSec);
                         });
                     }
@@ -281,7 +302,6 @@
                     }
                 };
 
-                // ดึงค่า Panning จาก Slider ตอนกด Play
                 pannerNode = audioCtx.createStereoPanner();
                 pannerNode.pan.value = parseFloat(ui.pan.value);
 
@@ -321,38 +341,48 @@
             globalPosition = 0;
             ui.progress.value = 0;
             ui.timeCurr.innerText = "0:00";
-            soundTouch = null; 
+            soundTouch = null;
+            filter = null;
         }
 
         ui.play.addEventListener('click', playAudio);
         ui.pause.addEventListener('click', pauseAudio);
         ui.stop.addEventListener('click', hardStopAudio);
 
+        // เลื่อนแถบเวลา (Seek) แบบเรียลไทม์
         ui.progress.addEventListener('input', (e) => {
             if (audioBuffer) {
                 const percent = parseFloat(e.target.value) / 100;
-                globalPosition = Math.floor(percent * audioBuffer.length);
-                ui.timeCurr.innerText = formatTime(globalPosition / audioCtx.sampleRate);
-                soundTouch = null; 
-                if (isPlaying) {
-                    pauseAudio();
-                    playAudio(); 
+                const newPos = Math.floor(percent * audioBuffer.length);
+                globalPosition = newPos;
+                ui.timeCurr.innerText = formatTime(newPos / audioBuffer.sampleRate);
+                if (filter) {
+                    filter.sourcePosition = newPos;
                 }
             }
         });
 
-        ui.tempo.addEventListener('input', (e) => {
-            const val = parseFloat(e.target.value);
+        // ควบคุมและรีเซ็ต Tempo
+        function setTempo(val) {
+            ui.tempo.value = val;
             ui.tempoVal.innerText = val.toFixed(2) + 'x';
             if (soundTouch) soundTouch.tempo = val;
-        });
+        }
+        ui.tempo.addEventListener('input', (e) => setTempo(parseFloat(e.target.value)));
+        ui.resetTempo.addEventListener('click', () => setTempo(1.0));
 
-        ui.pitch.addEventListener('input', (e) => {
-            const val = parseInt(e.target.value);
+        // ควบคุมและรีเซ็ต Key / Pitch
+        function setPitch(val) {
+            ui.pitch.value = val;
             ui.pitchVal.innerText = val > 0 ? '+' + val : val;
-            if (soundTouch) soundTouch.pitchSemis = val;
-        });
+            if (soundTouch) {
+                soundTouch.pitch = Math.pow(2, val / 12);
+            }
+        }
+        ui.pitch.addEventListener('input', (e) => setPitch(parseInt(e.target.value)));
+        ui.resetPitch.addEventListener('click', () => setPitch(0));
 
+        // โหมดตัดเสียงร้อง
         ui.vocal.addEventListener('click', () => {
             isVocalRemoverOn = !isVocalRemoverOn;
             ui.vocal.innerText = isVocalRemoverOn ? '🎤 โหมดตัดเสียงร้อง (Vocal Remover: ON)' : '🎤 เปิดโหมดตัดเสียงร้อง (Vocal Remover: OFF)';
@@ -365,19 +395,17 @@
             }
         });
 
-        // --- ระบบ Panning (อัปเดตใหม่) ---
+        // ระบบ Panning
         function updatePanUI(val) {
             ui.pan.value = val;
             if (val === 0) ui.panVal.innerText = "Center";
             else if (val < 0) ui.panVal.innerText = `L ${Math.round(Math.abs(val) * 100)}%`;
             else ui.panVal.innerText = `R ${Math.round(val * 100)}%`;
 
-            // อัปเดตเสียงแบบ Real-time ถ้ากำลังเล่นอยู่
             if (pannerNode) {
                 pannerNode.pan.value = val;
             }
 
-            // จัดการสีปุ่มลัดให้รู้ว่ากำลังกดปุ่มไหนอยู่
             [ui.btnPanLeft, ui.btnPanCenter, ui.btnPanRight].forEach(btn => {
                 btn.classList.replace('bg-cyan-900', 'bg-slate-800');
                 btn.classList.replace('text-cyan-100', 'text-slate-300');
@@ -403,10 +431,7 @@
             }
         }
 
-        ui.pan.addEventListener('input', (e) => {
-            updatePanUI(parseFloat(e.target.value));
-        });
-
+        ui.pan.addEventListener('input', (e) => updatePanUI(parseFloat(e.target.value)));
         ui.btnPanLeft.addEventListener('click', () => updatePanUI(-1));
         ui.btnPanCenter.addEventListener('click', () => updatePanUI(0));
         ui.btnPanRight.addEventListener('click', () => updatePanUI(1));
