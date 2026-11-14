@@ -1,15 +1,30 @@
-const CACHE_NAME = 'jarvis-audio-lab-v3';
+const CACHE_NAME = 'jarvis-audio-lab-v5';
 const urlsToCache = [
   './index.html',
   './manifest.json',
   'https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4',
-  'https://cdn.jsdelivr.net/npm/soundtouchjs@0.1.30/dist/soundtouch.min.js'
+  'https://cdn.jsdelivr.net/npm/soundtouchjs@0.1.30/+esm'
 ];
 
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       return cache.addAll(urlsToCache);
+    })
+  );
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cache => {
+          if (cache !== CACHE_NAME) {
+            return caches.delete(cache);
+          }
+        })
+      );
     })
   );
 });
