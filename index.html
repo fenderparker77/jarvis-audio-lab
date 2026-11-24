@@ -18,12 +18,12 @@
 
     <div class="bg-slate-800 p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-lg border border-slate-700">
         <h1 class="text-2xl font-bold mb-1 text-center text-cyan-400 font-mono tracking-wider">JARVIS AUDIO LAB</h1>
-        <p class="text-center text-slate-400 text-xs mb-5 font-mono">STUDIO PRO • AUTO KEY, BPM, METRONOME & 3-BAND EQ</p>
+        <p class="text-center text-slate-400 text-xs mb-5 font-mono">STUDIO PRO • LIVE INPUT, TUNER, EQ & SAVED LIBRARY</p>
         
         <!-- กราฟิกคลื่นเสียง -->
         <div class="w-full bg-slate-900 rounded-xl mb-5 overflow-hidden border border-slate-700 h-24 relative">
             <canvas id="visualizer" class="w-full h-full"></canvas>
-            <div id="noAudioText" class="absolute inset-0 flex items-center justify-center text-slate-600 text-sm font-medium">รอเลือกไฟล์เพลง...</div>
+            <div id="noAudioText" class="absolute inset-0 flex items-center justify-center text-slate-600 text-sm font-medium">รอเลือกไฟล์เพลง หรือเปิด Live Input...</div>
         </div>
 
         <!-- เลือกไฟล์เข้าคลัง (บันทึกลง IndexedDB อัตโนมัติ) -->
@@ -93,7 +93,7 @@
         </div>
 
         <!-- คลังเพลง (ต่อท้ายปุ่ม Play / Pause / Stop เพื่อความสะดวกในการกดเลือกเล่น) -->
-        <div class="bg-slate-900 rounded-xl border border-slate-700 p-4 mb-6">
+        <div class="bg-slate-900 rounded-xl border border-slate-700 p-4 mb-5">
             <div class="flex items-center justify-between mb-3 gap-2">
                 <div>
                     <h3 class="text-xs font-bold text-cyan-500 tracking-widest uppercase">SONG LIBRARY PLAYLIST</h3>
@@ -108,10 +108,106 @@
             </ul>
         </div>
 
+        <!-- ========================================================= -->
+        <!-- ระบบ Live Audio Input (Monitor ผ่าน EQ + Record + Tuner) -->
+        <!-- ========================================================= -->
+        <div class="mb-5 bg-slate-900/90 p-4 rounded-2xl border border-emerald-500/40 shadow-lg">
+            <div class="flex items-center justify-between mb-3">
+                <div>
+                    <h3 class="text-sm font-bold text-emerald-400 flex items-center gap-1.5">
+                        🎙️ LIVE AUDIO INPUT & TUNER
+                    </h3>
+                    <p class="text-[11px] text-slate-400 font-mono">Mic / Guitar / Mixer ➔ EQ ➔ Record</p>
+                </div>
+                <span id="liveStatusBadge" class="text-[11px] font-mono px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+                    OFFLINE
+                </span>
+            </div>
+
+            <!-- ปุ่มหลักเปิด-ปิด Live Audio Input -->
+            <button id="btnLiveInput" class="w-full bg-emerald-700 hover:bg-emerald-600 active:scale-[0.99] text-white font-bold py-3 px-4 rounded-xl mb-3 transition shadow-md flex justify-center items-center gap-2 touch-manipulation">
+                🎙️ เปิดรับสัญญาณเสียงเข้า (Live Input: OFF)
+            </button>
+
+            <!-- แผงควบคุมเมื่อเปิดใช้งาน Live Input (แสดงตลอดเพื่อให้กดตั้งค่าได้สะดวก) -->
+            <div id="liveControlPanel" class="space-y-3">
+                <!-- เลือกอุปกรณ์รับเสียง (Mic / USB Interface / Mixer) -->
+                <div>
+                    <label for="inputDeviceSelect" class="block text-[11px] font-mono text-slate-400 mb-1">อุปกรณ์ขาเข้า (AUDIO INPUT DEVICE)</label>
+                    <select id="inputDeviceSelect" class="w-full bg-slate-800 text-slate-200 text-xs rounded-xl px-3 py-2 border border-slate-700 focus:outline-none focus:border-emerald-500">
+                        <option value="">Default Microphone / Line-In</option>
+                    </select>
+                </div>
+
+                <!-- ตัวจับโน้ตเสียงสด (Auto Tuner) -->
+                <div class="bg-slate-800/90 rounded-xl p-3 border border-slate-700">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-[11px] font-mono text-slate-400 uppercase tracking-wider">AUTO CHROMATIC TUNER</span>
+                        <span id="tunerStatusText" class="text-[11px] font-mono text-slate-500">รอสัญญาณเสียง...</span>
+                    </div>
+
+                    <div class="flex items-baseline justify-between my-1">
+                        <div class="flex items-baseline gap-2">
+                            <span id="tunerNoteText" class="text-3xl font-black font-mono text-slate-400 tracking-tight">--</span>
+                            <span id="tunerCentsText" class="text-xs font-mono text-slate-400">0 cents</span>
+                        </div>
+                        <span id="tunerFreqText" class="text-xs font-mono text-cyan-400 bg-slate-900 px-2 py-1 rounded border border-slate-700">0.0 Hz</span>
+                    </div>
+
+                    <!-- แถบเข็มวัดระดับความตรงคีย์ (-50 ถึง +50 cents) -->
+                    <div class="relative w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-slate-700 mt-2">
+                        <!-- โซนตรงคีย์ตรงกลาง -->
+                        <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-4 bg-emerald-500/25 border-x border-emerald-500/50"></div>
+                        <!-- เข็มแสดงตำแหน่งโน้ต -->
+                        <div id="tunerNeedle" class="absolute top-0 bottom-0 w-1.5 bg-slate-500 rounded-full transition-all duration-75" style="left: 50%; transform: translateX(-50%);"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px] font-mono text-slate-500 mt-1">
+                        <span>-50 (ต่ำ / Flat)</span>
+                        <span class="text-emerald-400">0 (ตรงคีย์)</span>
+                        <span>+50 (สูง / Sharp)</span>
+                    </div>
+                </div>
+
+                <!-- Input Gain (-1 dB / +1 dB) -->
+                <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700/80">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-medium text-slate-300">Input Gain (ความแรงสัญญาณเข้า)</span>
+                        <button id="resetInputGain" class="text-[11px] text-slate-400 hover:text-white bg-slate-900 px-2 py-0.5 rounded border border-slate-700 touch-manipulation">0 dB</button>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 items-center">
+                        <button id="btnInputGainDown" class="bg-slate-900 hover:bg-slate-700 active:scale-95 text-emerald-300 text-xs font-mono font-bold py-2 rounded-xl border border-slate-700 transition select-none touch-manipulation">
+                            - 1 dB
+                        </button>
+                        <div id="inputGainVal" class="text-center text-xs font-mono font-bold text-emerald-400 bg-slate-950 py-2 px-2 rounded-xl border border-slate-800">
+                            0 dB (1.0x)
+                        </div>
+                        <button id="btnInputGainUp" class="bg-slate-900 hover:bg-slate-700 active:scale-95 text-emerald-300 text-xs font-mono font-bold py-2 rounded-xl border border-slate-700 transition select-none touch-manipulation">
+                            + 1 dB
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ปุ่ม Monitor ผ่าน EQ + ปุ่มอัดเสียงสดลง Playlist -->
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="btnLiveMonitor" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 text-xs font-bold py-2.5 px-2 rounded-xl border border-slate-600 transition flex items-center justify-center gap-1.5 touch-manipulation">
+                        🎧 Monitor EQ: OFF
+                    </button>
+                    <button id="btnLiveRecord" class="bg-rose-900/80 hover:bg-rose-800 active:scale-95 text-rose-200 text-xs font-bold py-2.5 px-2 rounded-xl border border-rose-700/70 transition flex items-center justify-center gap-1.5 disabled:opacity-40 touch-manipulation" disabled>
+                        ⏺ อัดเสียงลงคลัง
+                    </button>
+                </div>
+
+                <!-- ตัวเลือกอัดผสมเสียง Backing Track -->
+                <button id="btnRecIncludeTrack" class="w-full bg-slate-800/80 hover:bg-slate-700 text-slate-400 text-[11px] font-mono py-1.5 px-3 rounded-lg border border-slate-700 transition flex items-center justify-center gap-1.5 touch-manipulation">
+                    🎚️ โหมดอัด: อัดเฉพาะเสียงสด (ไม่รวมเสียงเพลงคลอ)
+                </button>
+            </div>
+        </div>
+
         <!-- ควบคุม Tempo (ปุ่มกดปรับทีละ -1% / +1%) -->
         <div class="mb-4 bg-slate-700/30 p-4 rounded-xl border border-slate-700/60">
             <div class="flex justify-between items-center mb-3">
-                <span class="text-sm font-medium text-slate-300">Tempo (ความเร็ว)</span>
+                <span class="text-sm font-medium text-slate-300">Tempo (ความเร็วเพลง)</span>
                 <button id="resetTempo" class="text-xs text-slate-400 hover:text-white bg-slate-800 px-2.5 py-1 rounded border border-slate-600 transition touch-manipulation">Reset</button>
             </div>
             <div class="grid grid-cols-3 gap-2 items-center">
@@ -161,7 +257,7 @@
         <!-- ควบคุม Key (ปุ่มกดปรับทีละ -1 / +1 Semitone) -->
         <div class="mb-4 bg-slate-700/30 p-4 rounded-xl border border-slate-700/60">
             <div class="flex justify-between items-center mb-3">
-                <span class="text-sm font-medium text-slate-300">Key (คีย์ / Semitones)</span>
+                <span class="text-sm font-medium text-slate-300">Key (คีย์เพลง / Semitones)</span>
                 <button id="resetPitch" class="text-xs text-slate-400 hover:text-white bg-slate-800 px-2.5 py-1 rounded border border-slate-600 transition touch-manipulation">Reset</button>
             </div>
             <div class="grid grid-cols-3 gap-2 items-center">
@@ -180,7 +276,7 @@
         <!-- ระบบ 3-Band EQ & Instrument Focus Presets (ปรับทีละ -1 / +1 dB) -->
         <div class="mb-5 bg-slate-700/30 p-4 rounded-xl border border-cyan-500/30">
             <div class="flex justify-between items-center mb-3">
-                <span class="text-sm font-medium text-cyan-300">3-Band EQ & Instrument Focus</span>
+                <span class="text-sm font-medium text-cyan-300">3-Band EQ (เพลง + Live Monitor)</span>
                 <button id="btnEqFlat" class="text-xs text-cyan-300 bg-cyan-950/80 hover:bg-cyan-900 px-2.5 py-1 rounded border border-cyan-600 font-semibold transition touch-manipulation">
                     Flat (0 dB)
                 </button>
@@ -369,9 +465,61 @@
         }
 
         // ==========================================
-        // 2. ระบบตรวจจับคีย์เพลงอัตโนมัติ (DSP Key Engine)
+        // 2. ตัวเข้ารหัสไฟล์ WAV 16-bit สำหรับบันทึกเสียงสดลง Playlist
+        // ==========================================
+        function encodeStereoWav(leftChunks, rightChunks, sampleRate) {
+            let totalSamples = 0;
+            for (let i = 0; i < leftChunks.length; i++) {
+                totalSamples += leftChunks[i].length;
+            }
+
+            const numChannels = 2;
+            const bytesPerSample = 2;
+            const dataSize = totalSamples * numChannels * bytesPerSample;
+            const buffer = new ArrayBuffer(44 + dataSize);
+            const view = new DataView(buffer);
+
+            function writeString(offset, str) {
+                for (let i = 0; i < str.length; i++) {
+                    view.setUint8(offset + i, str.charCodeAt(i));
+                }
+            }
+
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + dataSize, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true); // PCM
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * numChannels * bytesPerSample, true);
+            view.setUint16(32, numChannels * bytesPerSample, true);
+            view.setUint16(34, 16, true);
+            writeString(36, 'data');
+            view.setUint32(40, dataSize, true);
+
+            let offset = 44;
+            for (let c = 0; c < leftChunks.length; c++) {
+                const lArr = leftChunks[c];
+                const rArr = rightChunks[c];
+                for (let i = 0; i < lArr.length; i++) {
+                    const sL = Math.max(-1, Math.min(1, lArr[i]));
+                    const sR = Math.max(-1, Math.min(1, rArr[i]));
+                    view.setInt16(offset, sL < 0 ? sL * 0x8000 : sL * 0x7FFF, true);
+                    view.setInt16(offset + 2, sR < 0 ? sR * 0x8000 : sR * 0x7FFF, true);
+                    offset += 4;
+                }
+            }
+
+            return buffer;
+        }
+
+        // ==========================================
+        // 3. ระบบตรวจจับคีย์เพลงอัตโนมัติ (DSP Key Engine)
         // ==========================================
         const NOTE_NAMES = ['C', 'C# / Db', 'D', 'D# / Eb', 'E', 'F', 'F# / Gb', 'G', 'G# / Ab', 'A', 'A# / Bb', 'B'];
+        const TUNER_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
         const MAJOR_PROFILE = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
         const MINOR_PROFILE = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
 
@@ -500,7 +648,7 @@
         }
 
         // ==========================================
-        // 3. ระบบตรวจจับ BPM อัตโนมัติ (Onset Envelope + Autocorrelation)
+        // 4. ระบบตรวจจับ BPM อัตโนมัติ (Onset Envelope + Autocorrelation)
         // ==========================================
         function detectSongBPM(buffer) {
             const ch0 = buffer.getChannelData(0);
@@ -585,7 +733,7 @@
         }
 
         // ==========================================
-        // 4. ตัวกรอง Bass Preserve Crossover (130Hz Butterworth)
+        // 5. ตัวกรอง Bass Preserve Crossover (130Hz Butterworth)
         // ==========================================
         class BassPreserveCrossover {
             constructor(sampleRate, cutoff = 130) {
@@ -617,12 +765,16 @@
         }
 
         // ==========================================
-        // 5. ตัวแปรหลักของระบบเสียงและ UI
+        // 6. ตัวแปรหลักของระบบเสียงและ UI
         // ==========================================
-        let audioCtx, soundTouch, filter, scriptNode, eqLowNode, eqMidNode, eqHighNode, pannerNode, analyserNode, audioBuffer, crossover;
+        let audioCtx, soundTouch, filter, scriptNode, audioBuffer, crossover;
+        // Persistent Master Bus (EQ -> Pan -> Visualizer -> Output) แชร์ร่วมกันระหว่างไฟล์เพลงและ Live Monitor
+        let masterEqLow, masterEqMid, masterEqHigh, masterPanner, masterAnalyser;
+
         let globalPosition = 0;
         let isPlaying = false;
-        let animationId;
+        let animationId = null;
+        let visualizerRafId = null;
         let isVocalRemoverOn = false;
         let isBassPreserveOn = true;
         let playlist = [];
@@ -637,6 +789,24 @@
         let eqLowDb = 0;
         let eqMidDb = 0;
         let eqHighDb = 0;
+
+        // สถานะ Live Audio Input, Monitor, Record & Auto Tuner
+        let isLiveInputOn = false;
+        let isLiveMonitorOn = false;
+        let isLiveRecording = false;
+        let recIncludeTrack = false;
+        let inputGainDb = 0; // -12 to +18 dB
+        let liveStream = null;
+        let liveSourceNode = null;
+        let liveGainNode = null;
+        let liveMonitorGainNode = null;
+        let liveTunerAnalyser = null;
+        let liveRecordNode = null;
+        let tunerRafId = null;
+        let recordedChunksL = [];
+        let recordedChunksR = [];
+        let recordStartTime = 0;
+        let recordTimerInterval = null;
 
         // สถานะ Auto Key & Auto BPM + Metronome
         let detectedKey = null;
@@ -658,6 +828,22 @@
             stop: document.getElementById('btnStop'),
             vocal: document.getElementById('btnVocal'),
             bassPreserve: document.getElementById('btnBassPreserve'),
+            // Live Audio Input & Tuner UI
+            btnLiveInput: document.getElementById('btnLiveInput'),
+            liveStatusBadge: document.getElementById('liveStatusBadge'),
+            inputDeviceSelect: document.getElementById('inputDeviceSelect'),
+            tunerNoteText: document.getElementById('tunerNoteText'),
+            tunerCentsText: document.getElementById('tunerCentsText'),
+            tunerFreqText: document.getElementById('tunerFreqText'),
+            tunerStatusText: document.getElementById('tunerStatusText'),
+            tunerNeedle: document.getElementById('tunerNeedle'),
+            btnInputGainDown: document.getElementById('btnInputGainDown'),
+            btnInputGainUp: document.getElementById('btnInputGainUp'),
+            inputGainVal: document.getElementById('inputGainVal'),
+            resetInputGain: document.getElementById('resetInputGain'),
+            btnLiveMonitor: document.getElementById('btnLiveMonitor'),
+            btnLiveRecord: document.getElementById('btnLiveRecord'),
+            btnRecIncludeTrack: document.getElementById('btnRecIncludeTrack'),
             // Tempo Stepper
             btnTempoDown: document.getElementById('btnTempoDown'),
             btnTempoUp: document.getElementById('btnTempoUp'),
@@ -759,7 +945,479 @@
         }
 
         // ==========================================
-        // 6. ระบบควบคุม 3-Band EQ & Instrument Focus Presets
+        // 7. การเริ่มต้น AudioContext และ Master Bus (EQ + Pan + Visualizer)
+        // ==========================================
+        function ensureAudioContext() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContextClass();
+
+                masterEqLow = audioCtx.createBiquadFilter();
+                masterEqLow.type = 'lowshelf';
+                masterEqLow.frequency.value = 120;
+                masterEqLow.gain.value = eqLowDb;
+
+                masterEqMid = audioCtx.createBiquadFilter();
+                masterEqMid.type = 'peaking';
+                masterEqMid.frequency.value = 1500;
+                masterEqMid.Q.value = 1.0;
+                masterEqMid.gain.value = eqMidDb;
+
+                masterEqHigh = audioCtx.createBiquadFilter();
+                masterEqHigh.type = 'highshelf';
+                masterEqHigh.frequency.value = 6500;
+                masterEqHigh.gain.value = eqHighDb;
+
+                masterPanner = audioCtx.createStereoPanner();
+                masterPanner.pan.value = panStep / 10;
+
+                masterAnalyser = audioCtx.createAnalyser();
+                masterAnalyser.fftSize = 256;
+
+                masterEqLow.connect(masterEqMid);
+                masterEqMid.connect(masterEqHigh);
+                masterEqHigh.connect(masterPanner);
+                masterPanner.connect(masterAnalyser);
+                masterAnalyser.connect(audioCtx.destination);
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // ==========================================
+        // 8. ระบบ Live Audio Input + Auto Chromatic Tuner + Record to Playlist
+        // ==========================================
+        async function refreshAudioInputDevices() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioInputs = devices.filter(d => d.kind === 'audioinput');
+                const currentVal = ui.inputDeviceSelect.value;
+                ui.inputDeviceSelect.innerHTML = '';
+
+                if (audioInputs.length === 0) {
+                    const opt = document.createElement('option');
+                    opt.value = '';
+                    opt.textContent = 'Default Microphone / Line-In';
+                    ui.inputDeviceSelect.appendChild(opt);
+                    return;
+                }
+
+                audioInputs.forEach((dev, idx) => {
+                    const opt = document.createElement('option');
+                    opt.value = dev.deviceId;
+                    opt.textContent = dev.label || `Audio Input ${idx + 1}`;
+                    ui.inputDeviceSelect.appendChild(opt);
+                });
+
+                if (currentVal && Array.from(ui.inputDeviceSelect.options).some(o => o.value === currentVal)) {
+                    ui.inputDeviceSelect.value = currentVal;
+                }
+            } catch (err) {
+                console.error('Enumerate devices error:', err);
+            }
+        }
+
+        function setInputGainDb(newVal) {
+            inputGainDb = Math.max(-12, Math.min(18, Math.round(newVal)));
+            const linear = Math.pow(10, inputGainDb / 20);
+            const sign = inputGainDb > 0 ? `+${inputGainDb}` : `${inputGainDb}`;
+            ui.inputGainVal.innerText = `${sign} dB (${linear.toFixed(1)}x)`;
+            if (liveGainNode && audioCtx) {
+                liveGainNode.gain.setTargetAtTime(linear, audioCtx.currentTime, 0.015);
+            }
+        }
+
+        ui.btnInputGainDown.addEventListener('click', () => setInputGainDb(inputGainDb - 1));
+        ui.btnInputGainUp.addEventListener('click', () => setInputGainDb(inputGainDb + 1));
+        ui.resetInputGain.addEventListener('click', () => setInputGainDb(0));
+
+        // Autocorrelation Pitch Detector สำหรับ Auto Tuner
+        function detectPitchFromTimeDomain(buf, sampleRate) {
+            const size = buf.length;
+            let rms = 0;
+            for (let i = 0; i < size; i++) {
+                rms += buf[i] * buf[i];
+            }
+            rms = Math.sqrt(rms / size);
+            if (rms < 0.012) return -1; // Noise gate
+
+            // ตัดขอบสัญญาณที่ต่ำกว่า threshold เพื่อหาช่วงคาบเวลาแม่นยำขึ้น
+            let r1 = 0, r2 = size - 1;
+            const thresh = 0.2;
+            for (let i = 0; i < size / 2; i++) {
+                if (Math.abs(buf[i]) < thresh) { r1 = i; break; }
+            }
+            for (let i = 1; i < size / 2; i++) {
+                if (Math.abs(buf[size - i]) < thresh) { r2 = size - i; break; }
+            }
+
+            const trimmed = buf.slice(r1, r2);
+            const n = trimmed.length;
+            if (n < 64) return -1;
+
+            const minLag = Math.floor(sampleRate / 1400); // ~1400 Hz
+            const maxLag = Math.min(n - 2, Math.floor(sampleRate / 55)); // ~55 Hz (A1)
+            const c = new Float32Array(maxLag + 2);
+
+            for (let lag = 0; lag <= maxLag; lag++) {
+                let sum = 0;
+                for (let i = 0; i < n - lag; i++) {
+                    sum += trimmed[i] * trimmed[i + lag];
+                }
+                c[lag] = sum;
+            }
+
+            let d = minLag;
+            while (d < maxLag && c[d] > c[d + 1]) {
+                d++;
+            }
+
+            let maxVal = -1;
+            let maxPos = -1;
+            for (let i = d; i <= maxLag; i++) {
+                if (c[i] > maxVal) {
+                    maxVal = c[i];
+                    maxPos = i;
+                }
+            }
+
+            if (maxPos <= 0 || c[0] === 0 || (maxVal / c[0]) < 0.35) return -1;
+
+            let T0 = maxPos;
+            if (maxPos > 0 && maxPos < maxLag) {
+                const x1 = c[maxPos - 1];
+                const x2 = c[maxPos];
+                const x3 = c[maxPos + 1];
+                const a = (x1 + x3 - 2 * x2) / 2;
+                const b = (x3 - x1) / 2;
+                if (a !== 0) {
+                    T0 = maxPos - b / (2 * a);
+                }
+            }
+
+            return sampleRate / T0;
+        }
+
+        function updateAutoTunerLoop() {
+            if (!isLiveInputOn || !liveTunerAnalyser || !audioCtx) return;
+
+            const timeData = new Float32Array(liveTunerAnalyser.fftSize);
+            liveTunerAnalyser.getFloatTimeDomainData(timeData);
+            const freq = detectPitchFromTimeDomain(timeData, audioCtx.sampleRate);
+
+            if (freq > 50 && freq < 1500) {
+                const midiFloat = 12 * Math.log2(freq / 440) + 69;
+                const nearestMidi = Math.round(midiFloat);
+                const cents = Math.round((midiFloat - nearestMidi) * 100);
+                const noteIndex = ((nearestMidi % 12) + 12) % 12;
+                const octave = Math.floor(nearestMidi / 12) - 1;
+                const noteLabel = `${TUNER_NOTES[noteIndex]}${octave}`;
+
+                ui.tunerNoteText.innerText = noteLabel;
+                ui.tunerFreqText.innerText = `${freq.toFixed(1)} Hz`;
+                ui.tunerCentsText.innerText = `${cents > 0 ? '+' + cents : cents} cents`;
+
+                const clampedCents = Math.max(-50, Math.min(50, cents));
+                const leftPct = 50 + clampedCents;
+                ui.tunerNeedle.style.left = `${leftPct}%`;
+
+                if (Math.abs(cents) <= 5) {
+                    ui.tunerNoteText.className = 'text-3xl font-black font-mono text-emerald-400 tracking-tight';
+                    ui.tunerNeedle.className = 'absolute top-0 bottom-0 w-2 bg-emerald-400 shadow-[0_0_8px_#34d399] rounded-full transition-all duration-75';
+                    ui.tunerStatusText.innerText = '✅ IN TUNE (ตรงคีย์)';
+                    ui.tunerStatusText.className = 'text-[11px] font-mono text-emerald-400 font-bold';
+                } else if (Math.abs(cents) <= 18) {
+                    ui.tunerNoteText.className = 'text-3xl font-black font-mono text-amber-300 tracking-tight';
+                    ui.tunerNeedle.className = 'absolute top-0 bottom-0 w-1.5 bg-amber-400 rounded-full transition-all duration-75';
+                    ui.tunerStatusText.innerText = cents < 0 ? '◄ ต่ำไปนิด (ปรับขึ้น)' : 'สูงไปนิด (ปรับลง) ►';
+                    ui.tunerStatusText.className = 'text-[11px] font-mono text-amber-300';
+                } else {
+                    ui.tunerNoteText.className = 'text-3xl font-black font-mono text-rose-400 tracking-tight';
+                    ui.tunerNeedle.className = 'absolute top-0 bottom-0 w-1.5 bg-rose-400 rounded-full transition-all duration-75';
+                    ui.tunerStatusText.innerText = cents < 0 ? '◄◄ Flat (เสียงต่ำ)' : 'Sharp (เสียงสูง) ►►';
+                    ui.tunerStatusText.className = 'text-[11px] font-mono text-rose-400';
+                }
+            } else {
+                ui.tunerStatusText.innerText = 'กำลังฟังสัญญาณ...';
+                ui.tunerStatusText.className = 'text-[11px] font-mono text-slate-400';
+            }
+
+            tunerRafId = requestAnimationFrame(updateAutoTunerLoop);
+        }
+
+        function resetTunerUI() {
+            ui.tunerNoteText.innerText = '--';
+            ui.tunerNoteText.className = 'text-3xl font-black font-mono text-slate-400 tracking-tight';
+            ui.tunerCentsText.innerText = '0 cents';
+            ui.tunerFreqText.innerText = '0.0 Hz';
+            ui.tunerStatusText.innerText = 'รอสัญญาณเสียง...';
+            ui.tunerStatusText.className = 'text-[11px] font-mono text-slate-500';
+            ui.tunerNeedle.style.left = '50%';
+            ui.tunerNeedle.className = 'absolute top-0 bottom-0 w-1.5 bg-slate-500 rounded-full transition-all duration-75';
+        }
+
+        async function startLiveAudioInput() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert('เบราว์เซอร์นี้ไม่รองรับการรับสัญญาณเสียงสด (ต้องเปิดผ่าน HTTPS หรือ Localhost)');
+                return;
+            }
+
+            try {
+                ensureAudioContext();
+                const selectedDeviceId = ui.inputDeviceSelect.value;
+                const audioConstraints = {
+                    echoCancellation: false,
+                    noiseSuppression: false,
+                    autoGainControl: false
+                };
+                if (selectedDeviceId) {
+                    audioConstraints.deviceId = { exact: selectedDeviceId };
+                }
+
+                try {
+                    liveStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+                } catch (constraintErr) {
+                    // Fallback กรณีอุปกรณ์บางรุ่นไม่รองรับ exact constraint
+                    liveStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                }
+
+                await refreshAudioInputDevices();
+
+                liveSourceNode = audioCtx.createMediaStreamSource(liveStream);
+                liveGainNode = audioCtx.createGain();
+                liveGainNode.gain.value = Math.pow(10, inputGainDb / 20);
+
+                liveTunerAnalyser = audioCtx.createAnalyser();
+                liveTunerAnalyser.fftSize = 2048;
+
+                liveMonitorGainNode = audioCtx.createGain();
+                liveMonitorGainNode.gain.value = isLiveMonitorOn ? 1.0 : 0.0;
+
+                // เส้นทาง Live Audio:
+                // 1) liveSource -> liveGain -> liveTunerAnalyser (จับโน้ตแม่นยำ)
+                // 2) liveSource -> liveGain -> liveMonitorGain -> masterEqLow -> EQ -> Pan -> Visualizer -> Output
+                liveSourceNode.connect(liveGainNode);
+                liveGainNode.connect(liveTunerAnalyser);
+                liveGainNode.connect(liveMonitorGainNode);
+                liveMonitorGainNode.connect(masterEqLow);
+
+                isLiveInputOn = true;
+                ui.noAudio.classList.add('hidden');
+                ui.btnLiveInput.innerText = '🛑 ปิดรับสัญญาณเสียงเข้า (Live Input: ON)';
+                ui.btnLiveInput.classList.remove('bg-emerald-700', 'hover:bg-emerald-600');
+                ui.btnLiveInput.classList.add('bg-rose-700', 'hover:bg-rose-600');
+                ui.liveStatusBadge.innerText = '● LIVE ACTIVE';
+                ui.liveStatusBadge.className = 'text-[11px] font-mono px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-600 font-bold';
+                ui.btnLiveRecord.disabled = false;
+
+                updateAutoTunerLoop();
+                startVisualizerIfNeeded();
+            } catch (err) {
+                console.error('Live Audio Input error:', err);
+                alert('ไม่สามารถเข้าถึงไมโครโฟนหรือ Audio Interface ได้ กรุณาอนุญาตสิทธิ์การใช้งานไมโครโฟนบนเบราว์เซอร์ครับ');
+            }
+        }
+
+        async function stopLiveAudioInput() {
+            if (isLiveRecording) {
+                await stopLiveRecordingAndSave();
+            }
+
+            isLiveInputOn = false;
+            if (tunerRafId) {
+                cancelAnimationFrame(tunerRafId);
+                tunerRafId = null;
+            }
+            if (liveSourceNode) {
+                try { liveSourceNode.disconnect(); } catch (e) {}
+                liveSourceNode = null;
+            }
+            if (liveGainNode) {
+                try { liveGainNode.disconnect(); } catch (e) {}
+                liveGainNode = null;
+            }
+            if (liveMonitorGainNode) {
+                try { liveMonitorGainNode.disconnect(); } catch (e) {}
+                liveMonitorGainNode = null;
+            }
+            if (liveTunerAnalyser) {
+                try { liveTunerAnalyser.disconnect(); } catch (e) {}
+                liveTunerAnalyser = null;
+            }
+            if (liveStream) {
+                liveStream.getTracks().forEach(track => track.stop());
+                liveStream = null;
+            }
+
+            ui.btnLiveInput.innerText = '🎙️ เปิดรับสัญญาณเสียงเข้า (Live Input: OFF)';
+            ui.btnLiveInput.classList.remove('bg-rose-700', 'hover:bg-rose-600');
+            ui.btnLiveInput.classList.add('bg-emerald-700', 'hover:bg-emerald-600');
+            ui.liveStatusBadge.innerText = 'OFFLINE';
+            ui.liveStatusBadge.className = 'text-[11px] font-mono px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700';
+            ui.btnLiveRecord.disabled = true;
+            resetTunerUI();
+
+            if (!isPlaying && !audioBuffer) {
+                ui.noAudio.classList.remove('hidden');
+            }
+        }
+
+        ui.btnLiveInput.addEventListener('click', () => {
+            if (isLiveInputOn) {
+                stopLiveAudioInput();
+            } else {
+                startLiveAudioInput();
+            }
+        });
+
+        ui.inputDeviceSelect.addEventListener('change', async () => {
+            if (isLiveInputOn) {
+                await stopLiveAudioInput();
+                await startLiveAudioInput();
+            }
+        });
+
+        ui.btnLiveMonitor.addEventListener('click', () => {
+            isLiveMonitorOn = !isLiveMonitorOn;
+            if (isLiveMonitorOn) {
+                ui.btnLiveMonitor.innerText = '🎧 Monitor EQ: ON';
+                ui.btnLiveMonitor.classList.remove('bg-slate-800', 'hover:bg-slate-700', 'text-slate-300', 'border-slate-600');
+                ui.btnLiveMonitor.classList.add('bg-cyan-700', 'hover:bg-cyan-600', 'text-white', 'border-cyan-400');
+            } else {
+                ui.btnLiveMonitor.innerText = '🎧 Monitor EQ: OFF';
+                ui.btnLiveMonitor.classList.remove('bg-cyan-700', 'hover:bg-cyan-600', 'text-white', 'border-cyan-400');
+                ui.btnLiveMonitor.classList.add('bg-slate-800', 'hover:bg-slate-700', 'text-slate-300', 'border-slate-600');
+            }
+            if (liveMonitorGainNode && audioCtx) {
+                liveMonitorGainNode.gain.setTargetAtTime(isLiveMonitorOn ? 1.0 : 0.0, audioCtx.currentTime, 0.015);
+            }
+        });
+
+        ui.btnRecIncludeTrack.addEventListener('click', () => {
+            recIncludeTrack = !recIncludeTrack;
+            if (recIncludeTrack) {
+                ui.btnRecIncludeTrack.innerText = '🎚️ โหมดอัด: อัดเสียงสด + ผสมเพลงคลอ (Mix)';
+                ui.btnRecIncludeTrack.classList.remove('text-slate-400', 'border-slate-700');
+                ui.btnRecIncludeTrack.classList.add('text-amber-300', 'border-amber-600/60');
+            } else {
+                ui.btnRecIncludeTrack.innerText = '🎚️ โหมดอัด: อัดเฉพาะเสียงสด (ไม่รวมเสียงเพลงคลอ)';
+                ui.btnRecIncludeTrack.classList.remove('text-amber-300', 'border-amber-600/60');
+                ui.btnRecIncludeTrack.classList.add('text-slate-400', 'border-slate-700');
+            }
+        });
+
+        function startLiveRecording() {
+            if (!isLiveInputOn || !liveGainNode || isLiveRecording) return;
+            ensureAudioContext();
+
+            recordedChunksL = [];
+            recordedChunksR = [];
+            recordStartTime = Date.now();
+
+            liveRecordNode = audioCtx.createScriptProcessor(4096, 2, 2);
+            liveRecordNode.onaudioprocess = function(e) {
+                if (!isLiveRecording) return;
+                const inL = e.inputBuffer.getChannelData(0);
+                const inR = e.inputBuffer.numberOfChannels > 1 ? e.inputBuffer.getChannelData(1) : inL;
+                recordedChunksL.push(new Float32Array(inL));
+                recordedChunksR.push(new Float32Array(inR));
+            };
+
+            // รับสัญญาณจาก Live Input (ผ่าน Gain แล้ว)
+            liveGainNode.connect(liveRecordNode);
+            // หากเลือกโหมดผสมเพลงคลอ และกำลังเล่นเพลงอยู่ ให้ดึงสัญญาณเพลงมารวมด้วย
+            if (recIncludeTrack && scriptNode) {
+                scriptNode.connect(liveRecordNode);
+            }
+
+            // ต่อเข้า Gain(0) -> Destination เพื่อให้ ScriptProcessor ทำงานโดยไม่เกิดเสียงซ้อน
+            const silentSink = audioCtx.createGain();
+            silentSink.gain.value = 0;
+            liveRecordNode.connect(silentSink);
+            silentSink.connect(audioCtx.destination);
+            liveRecordNode._silentSink = silentSink;
+
+            isLiveRecording = true;
+            ui.btnLiveRecord.classList.remove('bg-rose-900/80', 'hover:bg-rose-800', 'text-rose-200');
+            ui.btnLiveRecord.classList.add('bg-rose-600', 'hover:bg-rose-500', 'text-white', 'animate-pulse');
+            ui.btnLiveRecord.innerText = '⏹ หยุดอัด (0:00)';
+
+            recordTimerInterval = setInterval(() => {
+                const elapsedSec = Math.floor((Date.now() - recordStartTime) / 1000);
+                ui.btnLiveRecord.innerText = `⏹ หยุดอัด (${formatTime(elapsedSec)})`;
+            }, 500);
+        }
+
+        async function stopLiveRecordingAndSave() {
+            if (!isLiveRecording) return;
+            isLiveRecording = false;
+
+            if (recordTimerInterval) {
+                clearInterval(recordTimerInterval);
+                recordTimerInterval = null;
+            }
+
+            if (liveRecordNode) {
+                liveRecordNode.onaudioprocess = null;
+                try { liveGainNode && liveGainNode.disconnect(liveRecordNode); } catch (e) {}
+                try { scriptNode && scriptNode.disconnect(liveRecordNode); } catch (e) {}
+                try { liveRecordNode.disconnect(); } catch (e) {}
+                if (liveRecordNode._silentSink) {
+                    try { liveRecordNode._silentSink.disconnect(); } catch (e) {}
+                }
+                liveRecordNode = null;
+            }
+
+            ui.btnLiveRecord.classList.remove('bg-rose-600', 'hover:bg-rose-500', 'text-white', 'animate-pulse');
+            ui.btnLiveRecord.classList.add('bg-rose-900/80', 'hover:bg-rose-800', 'text-rose-200');
+            ui.btnLiveRecord.innerText = '⏺ อัดเสียงลงคลัง';
+
+            if (recordedChunksL.length === 0) return;
+
+            const wavArrayBuffer = encodeStereoWav(recordedChunksL, recordedChunksR, audioCtx.sampleRate);
+            recordedChunksL = [];
+            recordedChunksR = [];
+
+            const now = new Date();
+            const pad = (n) => n.toString().padStart(2, '0');
+            const stamp = `${pad(now.getHours())}.${pad(now.getMinutes())}.${pad(now.getSeconds())}`;
+            const modeTag = recIncludeTrack ? 'Mix' : 'Live';
+            const fileName = `Jarvis_${modeTag}_${stamp}.wav`;
+
+            try {
+                const record = {
+                    name: fileName,
+                    type: 'audio/wav',
+                    size: wavArrayBuffer.byteLength,
+                    arrayBuffer: wavArrayBuffer,
+                    addedAt: Date.now()
+                };
+                const savedId = await saveTrackToDB(record);
+                record.id = savedId;
+                playlist.push(record);
+                renderPlaylist();
+
+                // หากยังไม่ได้โหลดเพลงใดไว้ ให้โหลดเทกที่เพิ่งอัดขึ้นมาเตรียมเล่นทันที
+                if (!audioBuffer) {
+                    await loadTrack(playlist.length - 1, false);
+                }
+            } catch (err) {
+                console.error('Save recorded track error:', err);
+            }
+        }
+
+        ui.btnLiveRecord.addEventListener('click', () => {
+            if (isLiveRecording) {
+                stopLiveRecordingAndSave();
+            } else {
+                startLiveRecording();
+            }
+        });
+
+        // ==========================================
+        // 9. ระบบควบคุม 3-Band EQ & Instrument Focus Presets
         // ==========================================
         function updatePresetHighlight() {
             const presets = [
@@ -789,9 +1447,9 @@
             ui.eqMidVal.innerText = formatSignedDb(eqMidDb);
             ui.eqHighVal.innerText = formatSignedDb(eqHighDb);
 
-            if (eqLowNode) eqLowNode.gain.value = eqLowDb;
-            if (eqMidNode) eqMidNode.gain.value = eqMidDb;
-            if (eqHighNode) eqHighNode.gain.value = eqHighDb;
+            if (masterEqLow) masterEqLow.gain.value = eqLowDb;
+            if (masterEqMid) masterEqMid.gain.value = eqMidDb;
+            if (masterEqHigh) masterEqHigh.gain.value = eqHighDb;
 
             updatePresetHighlight();
         }
@@ -811,7 +1469,7 @@
         ui.btnEqHighUp.addEventListener('click', () => applyEqValues(eqLowDb, eqMidDb, eqHighDb + 1));
 
         // ==========================================
-        // 7. ระบบ Lookahead Metronome Click Track
+        // 10. ระบบ Lookahead Metronome Click Track
         // ==========================================
         function triggerBeatLed(beatIdx) {
             ui.beatDots.forEach((dot, idx) => {
@@ -944,7 +1602,7 @@
         });
 
         // ==========================================
-        // 8. ฟังก์ชันอัปเดตค่าปุ่มปรับทีละสเต็ป (-1 / +1)
+        // 11. ฟังก์ชันอัปเดตค่าปุ่มปรับทีละสเต็ป (-1 / +1)
         // ==========================================
         function setTempoPercent(newVal) {
             tempoPercent = Math.max(50, Math.min(150, Math.round(newVal)));
@@ -975,8 +1633,8 @@
             } else {
                 ui.panVal.innerText = `R +${panStep}`;
             }
-            if (pannerNode) {
-                pannerNode.pan.value = panFloat;
+            if (masterPanner) {
+                masterPanner.pan.value = panFloat;
             }
         }
 
@@ -995,7 +1653,7 @@
         ui.btnPanRight.addEventListener('click', () => setPanStep(10));
 
         // ==========================================
-        // 9. ระบบจัดการ A-B Loop
+        // 12. ระบบจัดการ A-B Loop
         // ==========================================
         function clearABLoop() {
             loopPointA = null;
@@ -1062,7 +1720,7 @@
         ui.btnClearLoop.addEventListener('click', clearABLoop);
 
         // ==========================================
-        // 10. ระบบคลังเพลง (Playlist UI + IndexedDB Sync)
+        // 13. ระบบคลังเพลง (Playlist UI + IndexedDB Sync)
         // ==========================================
         function renderPlaylist() {
             const totalBytes = playlist.reduce((acc, t) => acc + (t.size || 0), 0);
@@ -1154,7 +1812,7 @@
                 ui.btnSetA.disabled = true;
                 ui.btnSetB.disabled = true;
                 ui.btnClearLoop.disabled = true;
-                ui.noAudio.classList.remove('hidden');
+                if (!isLiveInputOn) ui.noAudio.classList.remove('hidden');
             } else if (wasCurrent) {
                 hardStopAudio();
                 const nextIdx = Math.min(idx, playlist.length - 1);
@@ -1192,7 +1850,7 @@
             ui.btnSetA.disabled = true;
             ui.btnSetB.disabled = true;
             ui.btnClearLoop.disabled = true;
-            ui.noAudio.classList.remove('hidden');
+            if (!isLiveInputOn) ui.noAudio.classList.remove('hidden');
             renderPlaylist();
         });
 
@@ -1228,18 +1886,8 @@
         });
 
         // ==========================================
-        // 11. ระบบเล่นเสียง Web Audio + SoundTouchJS + 3-Band EQ
+        // 14. ระบบเล่นเสียง Web Audio + SoundTouchJS + Master Bus
         // ==========================================
-        function ensureAudioContext() {
-            if (!audioCtx) {
-                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-                audioCtx = new AudioContextClass();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-        }
-
         async function loadTrack(index, autoPlay = false) {
             if (index < 0 || index >= playlist.length) return;
             pauseAudio();
@@ -1380,43 +2028,18 @@
                 globalPosition = Math.min(audioBuffer.length, filter.sourcePosition);
             };
 
-            // 3-Band EQ Nodes
-            eqLowNode = audioCtx.createBiquadFilter();
-            eqLowNode.type = 'lowshelf';
-            eqLowNode.frequency.value = 120;
-            eqLowNode.gain.value = eqLowDb;
-
-            eqMidNode = audioCtx.createBiquadFilter();
-            eqMidNode.type = 'peaking';
-            eqMidNode.frequency.value = 1500;
-            eqMidNode.Q.value = 1.0;
-            eqMidNode.gain.value = eqMidDb;
-
-            eqHighNode = audioCtx.createBiquadFilter();
-            eqHighNode.type = 'highshelf';
-            eqHighNode.frequency.value = 6500;
-            eqHighNode.gain.value = eqHighDb;
-
-            pannerNode = audioCtx.createStereoPanner();
-            pannerNode.pan.value = panStep / 10;
-
-            analyserNode = audioCtx.createAnalyser();
-            analyserNode.fftSize = 256;
-
-            // Signal Routing: ScriptProcessor -> eqLow -> eqMid -> eqHigh -> Panner -> Analyser -> Destination
-            scriptNode.connect(eqLowNode);
-            eqLowNode.connect(eqMidNode);
-            eqMidNode.connect(eqHighNode);
-            eqHighNode.connect(pannerNode);
-            pannerNode.connect(analyserNode);
-            analyserNode.connect(audioCtx.destination);
+            // เชื่อมต่อเข้า Master Bus (3-Band EQ -> Panning -> Analyser -> Output)
+            scriptNode.connect(masterEqLow);
+            if (isLiveRecording && recIncludeTrack && liveRecordNode) {
+                scriptNode.connect(liveRecordNode);
+            }
 
             isPlaying = true;
             if (isMetronomeOn) {
                 startMetronomeScheduler(true);
             }
             updateProgressUI();
-            drawVisualizer();
+            startVisualizerIfNeeded();
         }
 
         function pauseAudio() {
@@ -1429,26 +2052,6 @@
                 scriptNode.onaudioprocess = null;
                 try { scriptNode.disconnect(); } catch (e) {}
                 scriptNode = null;
-            }
-            if (eqLowNode) {
-                try { eqLowNode.disconnect(); } catch (e) {}
-                eqLowNode = null;
-            }
-            if (eqMidNode) {
-                try { eqMidNode.disconnect(); } catch (e) {}
-                eqMidNode = null;
-            }
-            if (eqHighNode) {
-                try { eqHighNode.disconnect(); } catch (e) {}
-                eqHighNode = null;
-            }
-            if (pannerNode) {
-                try { pannerNode.disconnect(); } catch (e) {}
-                pannerNode = null;
-            }
-            if (analyserNode) {
-                try { analyserNode.disconnect(); } catch (e) {}
-                analyserNode = null;
             }
         }
 
@@ -1467,7 +2070,9 @@
             if (isMetronomeOn) {
                 startMetronomeScheduler(true);
             }
-            canvasCtx.clearRect(0, 0, ui.canvas.width, ui.canvas.height);
+            if (!isLiveInputOn) {
+                canvasCtx.clearRect(0, 0, ui.canvas.width, ui.canvas.height);
+            }
         }
 
         function updateProgressUI() {
@@ -1478,13 +2083,23 @@
             animationId = requestAnimationFrame(updateProgressUI);
         }
 
+        function startVisualizerIfNeeded() {
+            if (visualizerRafId !== null) return;
+            drawVisualizer();
+        }
+
         function drawVisualizer() {
-            if (!isPlaying || !analyserNode) return;
+            if ((!isPlaying && !isLiveInputOn) || !masterAnalyser) {
+                visualizerRafId = null;
+                canvasCtx.clearRect(0, 0, ui.canvas.width, ui.canvas.height);
+                return;
+            }
+
             const width = ui.canvas.width = ui.canvas.clientWidth;
             const height = ui.canvas.height = ui.canvas.clientHeight;
-            const bufferLength = analyserNode.frequencyBinCount;
+            const bufferLength = masterAnalyser.frequencyBinCount;
             const dataArray = new Uint8Array(bufferLength);
-            analyserNode.getByteFrequencyData(dataArray);
+            masterAnalyser.getByteFrequencyData(dataArray);
 
             canvasCtx.clearRect(0, 0, width, height);
             const barWidth = (width / bufferLength) * 2.2;
@@ -1492,11 +2107,15 @@
 
             for (let i = 0; i < bufferLength; i++) {
                 const barHeight = (dataArray[i] / 255) * height;
-                canvasCtx.fillStyle = `rgb(34, ${Math.min(255, 180 + dataArray[i] / 3)}, 238)`;
+                if (isLiveInputOn && !isPlaying) {
+                    canvasCtx.fillStyle = `rgb(16, ${Math.min(255, 185 + dataArray[i] / 3)}, 129)`;
+                } else {
+                    canvasCtx.fillStyle = `rgb(34, ${Math.min(255, 180 + dataArray[i] / 3)}, 238)`;
+                }
                 canvasCtx.fillRect(x, height - barHeight, Math.max(2, barWidth - 1), barHeight);
                 x += barWidth;
             }
-            requestAnimationFrame(drawVisualizer);
+            visualizerRafId = requestAnimationFrame(drawVisualizer);
         }
 
         ui.progress.addEventListener('input', () => {
@@ -1542,9 +2161,10 @@
         });
 
         // ==========================================
-        // 12. โหลดรายการเพลงที่บันทึกไว้เมื่อเปิดแอป
+        // 15. โหลดรายการเพลงที่บันทึกไว้เมื่อเปิดแอป
         // ==========================================
         window.addEventListener('DOMContentLoaded', async () => {
+            await refreshAudioInputDevices();
             try {
                 const savedTracks = await getAllTracksFromDB();
                 if (savedTracks.length > 0) {
