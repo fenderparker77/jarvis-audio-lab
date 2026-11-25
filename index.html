@@ -18,7 +18,7 @@
 
     <div class="bg-slate-800 p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-lg border border-slate-700">
         <h1 class="text-2xl font-bold mb-1 text-center text-cyan-400 font-mono tracking-wider">JARVIS AUDIO LAB</h1>
-        <p class="text-center text-slate-400 text-xs mb-5 font-mono">STUDIO PRO • LIVE INPUT, TUNER, EQ & SAVED LIBRARY</p>
+        <p class="text-center text-slate-400 text-xs mb-5 font-mono">STUDIO PRO • LIVE INPUT, COMPRESSOR, TUNER & MIXER</p>
         
         <!-- กราฟิกคลื่นเสียง -->
         <div class="w-full bg-slate-900 rounded-xl mb-5 overflow-hidden border border-slate-700 h-24 relative">
@@ -108,16 +108,16 @@
             </ul>
         </div>
 
-        <!-- ========================================================= -->
-        <!-- ระบบ Live Audio Input (Monitor ผ่าน EQ + Record + Tuner) -->
-        <!-- ========================================================= -->
+        <!-- ================================================================== -->
+        <!-- ระบบ Live Audio Input (Compressor + Tuner Gate + EQ + Record)      -->
+        <!-- ================================================================== -->
         <div class="mb-5 bg-slate-900/90 p-4 rounded-2xl border border-emerald-500/40 shadow-lg">
             <div class="flex items-center justify-between mb-3">
                 <div>
                     <h3 class="text-sm font-bold text-emerald-400 flex items-center gap-1.5">
                         🎙️ LIVE AUDIO INPUT & TUNER
                     </h3>
-                    <p class="text-[11px] text-slate-400 font-mono">Mic / Guitar / Mixer ➔ EQ ➔ Record</p>
+                    <p class="text-[11px] text-slate-400 font-mono">Mic / Guitar / Mixer ➔ Comp ➔ EQ</p>
                 </div>
                 <span id="liveStatusBadge" class="text-[11px] font-mono px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
                     OFFLINE
@@ -129,7 +129,7 @@
                 🎙️ เปิดรับสัญญาณเสียงเข้า (Live Input: OFF)
             </button>
 
-            <!-- แผงควบคุมเมื่อเปิดใช้งาน Live Input (แสดงตลอดเพื่อให้กดตั้งค่าได้สะดวก) -->
+            <!-- แผงควบคุม Live Input -->
             <div id="liveControlPanel" class="space-y-3">
                 <!-- เลือกอุปกรณ์รับเสียง (Mic / USB Interface / Mixer) -->
                 <div>
@@ -139,7 +139,7 @@
                     </select>
                 </div>
 
-                <!-- ตัวจับโน้ตเสียงสด (Auto Tuner) -->
+                <!-- ตัวจับโน้ตเสียงสด (Auto Tuner + Noise Gate) -->
                 <div class="bg-slate-800/90 rounded-xl p-3 border border-slate-700">
                     <div class="flex items-center justify-between mb-1.5">
                         <span class="text-[11px] font-mono text-slate-400 uppercase tracking-wider">AUTO CHROMATIC TUNER</span>
@@ -156,15 +156,48 @@
 
                     <!-- แถบเข็มวัดระดับความตรงคีย์ (-50 ถึง +50 cents) -->
                     <div class="relative w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-slate-700 mt-2">
-                        <!-- โซนตรงคีย์ตรงกลาง -->
                         <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-4 bg-emerald-500/25 border-x border-emerald-500/50"></div>
-                        <!-- เข็มแสดงตำแหน่งโน้ต -->
                         <div id="tunerNeedle" class="absolute top-0 bottom-0 w-1.5 bg-slate-500 rounded-full transition-all duration-75" style="left: 50%; transform: translateX(-50%);"></div>
                     </div>
-                    <div class="flex justify-between text-[10px] font-mono text-slate-500 mt-1">
+                    <div class="flex justify-between text-[10px] font-mono text-slate-500 mt-1 mb-3">
                         <span>-50 (ต่ำ / Flat)</span>
                         <span class="text-emerald-400">0 (ตรงคีย์)</span>
                         <span>+50 (สูง / Sharp)</span>
+                    </div>
+
+                    <!-- ระบบ Noise Gate ของ Auto Tuner (ตัดเสียงเพลงรั่ว/เสียงรบกวน) -->
+                    <div class="pt-2.5 border-t border-slate-700/80">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-[11px] font-medium text-amber-300">🛡️ Tuner Noise Gate (ตัดเสียงรั่ว)</span>
+                            <div class="flex items-center gap-1.5">
+                                <span id="tunerLiveDbText" class="text-[10px] font-mono text-slate-400">In: -60 dB</span>
+                                <button id="btnAutoGate" class="text-[10px] font-mono bg-amber-950/90 hover:bg-amber-900 text-amber-300 px-2 py-0.5 rounded border border-amber-600/70 transition touch-manipulation" title="วัดระดับเสียงเพลงที่รั่วเข้าไมค์แล้วตั้งค่า Gate ให้อัตโนมัติ">
+                                    🎯 Auto Gate
+                                </button>
+                                <button id="resetTunerGate" class="text-[10px] font-mono text-slate-400 hover:text-white bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700 touch-manipulation">
+                                    Reset
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- แถบวัดความแรงสัญญาณเทียบกับขีด Noise Gate -->
+                        <div class="relative w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-700 mb-2">
+                            <div id="tunerLevelBar" class="h-full bg-slate-600 transition-all duration-75" style="width: 0%;"></div>
+                            <div id="tunerGateMarker" class="absolute top-0 bottom-0 w-0.5 bg-amber-400 shadow-[0_0_6px_#fbbf24]" style="left: 36.7%;"></div>
+                        </div>
+
+                        <!-- ปุ่มปรับ Noise Gate ทีละ -1 dB / +1 dB -->
+                        <div class="grid grid-cols-3 gap-2 items-center">
+                            <button id="btnGateDown" class="bg-slate-900 hover:bg-slate-700 active:scale-95 text-amber-300 text-xs font-mono font-bold py-1.5 rounded-xl border border-slate-700 transition select-none touch-manipulation">
+                                - 1 dB
+                            </button>
+                            <div id="tunerGateVal" class="text-center text-xs font-mono font-bold text-amber-300 bg-slate-950 py-1.5 px-2 rounded-xl border border-slate-800">
+                                -38 dB
+                            </div>
+                            <button id="btnGateUp" class="bg-slate-900 hover:bg-slate-700 active:scale-95 text-amber-300 text-xs font-mono font-bold py-1.5 rounded-xl border border-slate-700 transition select-none touch-manipulation">
+                                + 1 dB
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -187,6 +220,64 @@
                     </div>
                 </div>
 
+                <!-- ระบบ Input Compressor (คุมไดนามิกเสียงร้อง/กีตาร์สด) -->
+                <div class="bg-slate-800/70 p-3 rounded-xl border border-indigo-500/40">
+                    <div class="flex items-center justify-between mb-2">
+                        <div>
+                            <span class="text-xs font-bold text-indigo-300">🎛️ Input Compressor (คุมไดนามิกขาเข้า)</span>
+                            <p class="text-[10px] font-mono text-slate-400">กันเสียงพีคแตก + ดันเนื้อเสียงร้อง/กีตาร์ให้นิ่ง</p>
+                        </div>
+                        <span id="compGrText" class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-950 text-slate-400 border border-slate-800">
+                            GR: 0.0 dB
+                        </span>
+                    </div>
+
+                    <!-- ปุ่มเปิด-ปิด Input Compressor -->
+                    <button id="btnLiveComp" class="w-full bg-slate-900 hover:bg-slate-700 active:scale-[0.99] text-indigo-300 text-xs font-bold py-2.5 px-3 rounded-xl mb-2.5 border border-indigo-500/50 transition flex items-center justify-center gap-1.5 touch-manipulation">
+                        🎛️ Input Compressor: OFF
+                    </button>
+
+                    <!-- แถบวัดการกดสัญญาณ (Gain Reduction Meter) -->
+                    <div class="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800 mb-2.5">
+                        <div id="compGrBar" class="h-full bg-indigo-400 transition-all duration-75" style="width: 0%;"></div>
+                    </div>
+
+                    <!-- พรีเซ็ตคอมเพรสเซอร์ 3 แบบ -->
+                    <div class="grid grid-cols-3 gap-1.5 mb-2.5">
+                        <button id="btnCompPresetVocal" class="bg-slate-900 hover:bg-slate-700 active:scale-95 text-slate-300 text-[11px] font-semibold py-1.5 px-1 rounded-lg border border-slate-700 transition touch-manipulation">
+                            🎙️ Vocal Smooth
+                        </button>
+                        <button id="btnCompPresetGuitar" class="bg-slate-900 hover:bg-slate-700 active:scale-95 text-slate-300 text-[11px] font-semibold py-1.5 px-1 rounded-lg border border-slate-700 transition touch-manipulation">
+                            🎸 Guitar / Acous
+                        </button>
+                        <button id="btnCompPresetLimiter" class="bg-slate-900 hover:bg-slate-700 active:scale-95 text-slate-300 text-[11px] font-semibold py-1.5 px-1 rounded-lg border border-slate-700 transition touch-manipulation">
+                            🛡️ Peak Limiter
+                        </button>
+                    </div>
+
+                    <!-- ปรับ Threshold (-1 / +1 dB) และ Ratio (-1 / +1) -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <!-- Threshold -->
+                        <div class="bg-slate-900/70 p-2 rounded-lg border border-slate-700/80">
+                            <div class="text-[10px] font-mono text-slate-400 text-center mb-1">THRESHOLD</div>
+                            <div class="grid grid-cols-3 gap-1 items-center">
+                                <button id="btnCompThreshDown" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-indigo-300 text-[11px] font-mono font-bold py-1.5 rounded border border-slate-700 touch-manipulation">-1</button>
+                                <div id="compThreshVal" class="text-center text-[11px] font-mono font-bold text-indigo-300">-22dB</div>
+                                <button id="btnCompThreshUp" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-indigo-300 text-[11px] font-mono font-bold py-1.5 rounded border border-slate-700 touch-manipulation">+1</button>
+                            </div>
+                        </div>
+                        <!-- Ratio -->
+                        <div class="bg-slate-900/70 p-2 rounded-lg border border-slate-700/80">
+                            <div class="text-[10px] font-mono text-slate-400 text-center mb-1">RATIO</div>
+                            <div class="grid grid-cols-3 gap-1 items-center">
+                                <button id="btnCompRatioDown" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-indigo-300 text-[11px] font-mono font-bold py-1.5 rounded border border-slate-700 touch-manipulation">-1</button>
+                                <div id="compRatioVal" class="text-center text-[11px] font-mono font-bold text-indigo-300">4:1</div>
+                                <button id="btnCompRatioUp" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-indigo-300 text-[11px] font-mono font-bold py-1.5 rounded border border-slate-700 touch-manipulation">+1</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- ปุ่ม Monitor ผ่าน EQ + ปุ่มอัดเสียงสดลง Playlist -->
                 <div class="grid grid-cols-2 gap-2">
                     <button id="btnLiveMonitor" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 text-xs font-bold py-2.5 px-2 rounded-xl border border-slate-600 transition flex items-center justify-center gap-1.5 touch-manipulation">
@@ -201,6 +292,35 @@
                 <button id="btnRecIncludeTrack" class="w-full bg-slate-800/80 hover:bg-slate-700 text-slate-400 text-[11px] font-mono py-1.5 px-3 rounded-lg border border-slate-700 transition flex items-center justify-center gap-1.5 touch-manipulation">
                     🎚️ โหมดอัด: อัดเฉพาะเสียงสด (ไม่รวมเสียงเพลงคลอ)
                 </button>
+            </div>
+        </div>
+
+        <!-- ================================================================== -->
+        <!-- ควบคุม Volume เสียงเพลงในคลัง (Balance กับเสียง Live Input)         -->
+        <!-- ================================================================== -->
+        <div class="mb-4 bg-slate-700/30 p-4 rounded-xl border border-emerald-500/30">
+            <div class="flex justify-between items-center mb-3">
+                <div>
+                    <span class="text-sm font-medium text-emerald-300">🔊 Track Volume (ระดับเสียงเพลงในคลัง)</span>
+                    <p class="text-[11px] text-slate-400 font-mono">ปรับบาลานซ์เสียงเพลงคลอกับเสียง Live Input</p>
+                </div>
+                <button id="resetTrackVol" class="text-xs text-slate-400 hover:text-white bg-slate-800 px-2.5 py-1 rounded border border-slate-600 transition touch-manipulation">100%</button>
+            </div>
+            <div class="grid grid-cols-3 gap-2 items-center mb-2.5">
+                <button id="btnTrackVolDown" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-emerald-300 font-mono font-bold py-2.5 rounded-xl border border-slate-600 transition select-none touch-manipulation">
+                    - 5%
+                </button>
+                <div id="trackVolVal" class="text-center text-sm font-mono font-bold text-emerald-400 bg-slate-900/90 py-2.5 px-2 rounded-xl border border-slate-700">
+                    100% (0.0 dB)
+                </div>
+                <button id="btnTrackVolUp" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-emerald-300 font-mono font-bold py-2.5 rounded-xl border border-slate-600 transition select-none touch-manipulation">
+                    + 5%
+                </button>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+                <button id="btnTrackVolMute" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs py-1.5 rounded-lg transition border border-slate-600 touch-manipulation">🔇 Mute (0%)</button>
+                <button id="btnTrackVolHalf" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs py-1.5 rounded-lg transition border border-slate-600 touch-manipulation">🔉 50% (คลอเบา)</button>
+                <button id="btnTrackVolFull" class="bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 text-xs py-1.5 rounded-lg transition border border-emerald-700 font-semibold touch-manipulation">🔊 100% (ปกติ)</button>
             </div>
         </div>
 
@@ -227,7 +347,6 @@
         <div class="mb-4 bg-slate-700/30 p-4 rounded-xl border border-amber-500/30">
             <div class="flex justify-between items-center mb-3">
                 <span class="text-sm font-medium text-amber-300">Metronome (เมโทรนอมซิงก์จังหวะ)</span>
-                <!-- ไฟ LED แสดงจังหวะ 1-2-3-4 -->
                 <div class="flex items-center gap-1.5" aria-label="Beat Indicators">
                     <span id="beatDot0" class="w-3 h-3 rounded-full bg-slate-700 border border-slate-600 transition-all duration-75" title="Beat 1 (Accent)"></span>
                     <span id="beatDot1" class="w-2.5 h-2.5 rounded-full bg-slate-700 border border-slate-600 transition-all duration-75" title="Beat 2"></span>
@@ -240,7 +359,6 @@
                 🔔 เปิดเสียง Metronome (OFF)
             </button>
 
-            <!-- ปรับจูนฐาน BPM ทีละ -1 / +1 หรือ Tap Tempo -->
             <div class="grid grid-cols-3 gap-2 items-center">
                 <button id="btnBpmDown" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-300 text-xs font-mono font-bold py-2.5 rounded-xl border border-slate-600 transition select-none touch-manipulation">
                     - 1 BPM
@@ -490,7 +608,7 @@
             writeString(8, 'WAVE');
             writeString(12, 'fmt ');
             view.setUint32(16, 16, true);
-            view.setUint16(20, 1, true); // PCM
+            view.setUint16(20, 1, true);
             view.setUint16(22, numChannels, true);
             view.setUint32(24, sampleRate, true);
             view.setUint32(28, sampleRate * numChannels * bytesPerSample, true);
@@ -768,8 +886,7 @@
         // 6. ตัวแปรหลักของระบบเสียงและ UI
         // ==========================================
         let audioCtx, soundTouch, filter, scriptNode, audioBuffer, crossover;
-        // Persistent Master Bus (EQ -> Pan -> Visualizer -> Output) แชร์ร่วมกันระหว่างไฟล์เพลงและ Live Monitor
-        let masterEqLow, masterEqMid, masterEqHigh, masterPanner, masterAnalyser;
+        let trackGainNode, masterEqLow, masterEqMid, masterEqHigh, masterPanner, masterAnalyser;
 
         let globalPosition = 0;
         let isPlaying = false;
@@ -780,25 +897,40 @@
         let playlist = [];
         let currentTrackIndex = -1;
 
-        // ค่าสถานะของปุ่มปรับทีละสเต็ป (-1 / +1)
-        let tempoPercent = 100;   // 50% - 150%, step 1%
-        let pitchSemitones = 0;   // -12 to +12, step 1
-        let panStep = 0;          // -10 to +10, step 1
+        // ค่าสถานะของปุ่มปรับทีละสเต็ป
+        let trackVolumePercent = 100; // 0% - 150%, step 5%
+        let tempoPercent = 100;       // 50% - 150%, step 1%
+        let pitchSemitones = 0;       // -12 to +12, step 1
+        let panStep = 0;              // -10 to +10, step 1
 
         // ค่าสถานะ 3-Band EQ (-12 dB to +12 dB, step 1 dB)
         let eqLowDb = 0;
         let eqMidDb = 0;
         let eqHighDb = 0;
 
-        // สถานะ Live Audio Input, Monitor, Record & Auto Tuner
+        // สถานะ Live Audio Input, Compressor, Monitor, Record & Auto Tuner + Noise Gate
         let isLiveInputOn = false;
         let isLiveMonitorOn = false;
         let isLiveRecording = false;
         let recIncludeTrack = false;
-        let inputGainDb = 0; // -12 to +18 dB
+        let inputGainDb = 0;       // -12 to +18 dB
+        let tunerGateDb = -38;     // -60 to -10 dBFS, step 1 dB
+        let isAutoGateSampling = false;
+        let autoGatePeakDb = -60;
+
+        // สถานะ Input Compressor
+        let isLiveCompressorOn = false;
+        let compThresholdDb = -22; // -50 to 0 dB
+        let compRatio = 4;         // 1 to 20
+        let compAttackSec = 0.008;
+        let compReleaseSec = 0.18;
+        let compMakeupDb = 3;
+
         let liveStream = null;
         let liveSourceNode = null;
         let liveGainNode = null;
+        let liveCompressorNode = null;
+        let liveMakeupGainNode = null;
         let liveMonitorGainNode = null;
         let liveTunerAnalyser = null;
         let liveRecordNode = null;
@@ -837,13 +969,45 @@
             tunerFreqText: document.getElementById('tunerFreqText'),
             tunerStatusText: document.getElementById('tunerStatusText'),
             tunerNeedle: document.getElementById('tunerNeedle'),
+            // Tuner Noise Gate UI
+            tunerLiveDbText: document.getElementById('tunerLiveDbText'),
+            tunerLevelBar: document.getElementById('tunerLevelBar'),
+            tunerGateMarker: document.getElementById('tunerGateMarker'),
+            btnGateDown: document.getElementById('btnGateDown'),
+            btnGateUp: document.getElementById('btnGateUp'),
+            tunerGateVal: document.getElementById('tunerGateVal'),
+            btnAutoGate: document.getElementById('btnAutoGate'),
+            resetTunerGate: document.getElementById('resetTunerGate'),
+            // Input Gain UI
             btnInputGainDown: document.getElementById('btnInputGainDown'),
             btnInputGainUp: document.getElementById('btnInputGainUp'),
             inputGainVal: document.getElementById('inputGainVal'),
             resetInputGain: document.getElementById('resetInputGain'),
+            // Input Compressor UI
+            btnLiveComp: document.getElementById('btnLiveComp'),
+            compGrText: document.getElementById('compGrText'),
+            compGrBar: document.getElementById('compGrBar'),
+            btnCompPresetVocal: document.getElementById('btnCompPresetVocal'),
+            btnCompPresetGuitar: document.getElementById('btnCompPresetGuitar'),
+            btnCompPresetLimiter: document.getElementById('btnCompPresetLimiter'),
+            btnCompThreshDown: document.getElementById('btnCompThreshDown'),
+            btnCompThreshUp: document.getElementById('btnCompThreshUp'),
+            compThreshVal: document.getElementById('compThreshVal'),
+            btnCompRatioDown: document.getElementById('btnCompRatioDown'),
+            btnCompRatioUp: document.getElementById('btnCompRatioUp'),
+            compRatioVal: document.getElementById('compRatioVal'),
+            // Monitor & Record UI
             btnLiveMonitor: document.getElementById('btnLiveMonitor'),
             btnLiveRecord: document.getElementById('btnLiveRecord'),
             btnRecIncludeTrack: document.getElementById('btnRecIncludeTrack'),
+            // Track Volume UI
+            btnTrackVolDown: document.getElementById('btnTrackVolDown'),
+            btnTrackVolUp: document.getElementById('btnTrackVolUp'),
+            trackVolVal: document.getElementById('trackVolVal'),
+            resetTrackVol: document.getElementById('resetTrackVol'),
+            btnTrackVolMute: document.getElementById('btnTrackVolMute'),
+            btnTrackVolHalf: document.getElementById('btnTrackVolHalf'),
+            btnTrackVolFull: document.getElementById('btnTrackVolFull'),
             // Tempo Stepper
             btnTempoDown: document.getElementById('btnTempoDown'),
             btnTempoUp: document.getElementById('btnTempoUp'),
@@ -945,12 +1109,15 @@
         }
 
         // ==========================================
-        // 7. การเริ่มต้น AudioContext และ Master Bus (EQ + Pan + Visualizer)
+        // 7. การเริ่มต้น AudioContext และ Master Bus (TrackGain + EQ + Pan + Visualizer)
         // ==========================================
         function ensureAudioContext() {
             if (!audioCtx) {
                 const AudioContextClass = window.AudioContext || window.webkitAudioContext;
                 audioCtx = new AudioContextClass();
+
+                trackGainNode = audioCtx.createGain();
+                trackGainNode.gain.value = trackVolumePercent / 100;
 
                 masterEqLow = audioCtx.createBiquadFilter();
                 masterEqLow.type = 'lowshelf';
@@ -974,6 +1141,8 @@
                 masterAnalyser = audioCtx.createAnalyser();
                 masterAnalyser.fftSize = 256;
 
+                // เส้นทางเพลงในคลัง: scriptNode -> trackGainNode -> masterEqLow -> EQ -> Pan -> Visualizer -> Destination
+                trackGainNode.connect(masterEqLow);
                 masterEqLow.connect(masterEqMid);
                 masterEqMid.connect(masterEqHigh);
                 masterEqHigh.connect(masterPanner);
@@ -986,8 +1155,157 @@
         }
 
         // ==========================================
-        // 8. ระบบ Live Audio Input + Auto Chromatic Tuner + Record to Playlist
+        // 8. ระบบ Track Volume (ปรับเสียงเพลงในคลังแยกอิสระจาก Live Input)
         // ==========================================
+        function setTrackVolumePercent(newVal) {
+            trackVolumePercent = Math.max(0, Math.min(150, Math.round(newVal)));
+            const linear = trackVolumePercent / 100;
+            const dbStr = linear <= 0.001 ? '-∞ dB' : `${(20 * Math.log10(linear)).toFixed(1)} dB`;
+            ui.trackVolVal.innerText = `${trackVolumePercent}% (${dbStr})`;
+
+            if (trackGainNode && audioCtx) {
+                trackGainNode.gain.setTargetAtTime(linear, audioCtx.currentTime, 0.015);
+            }
+        }
+
+        ui.btnTrackVolDown.addEventListener('click', () => setTrackVolumePercent(trackVolumePercent - 5));
+        ui.btnTrackVolUp.addEventListener('click', () => setTrackVolumePercent(trackVolumePercent + 5));
+        ui.resetTrackVol.addEventListener('click', () => setTrackVolumePercent(100));
+        ui.btnTrackVolMute.addEventListener('click', () => setTrackVolumePercent(0));
+        ui.btnTrackVolHalf.addEventListener('click', () => setTrackVolumePercent(50));
+        ui.btnTrackVolFull.addEventListener('click', () => setTrackVolumePercent(100));
+
+        // ==========================================
+        // 9. ระบบ Input Compressor สำหรับช่อง Live Input
+        // ==========================================
+        function updateCompressorPresetHighlight() {
+            const presets = [
+                { btn: ui.btnCompPresetVocal, thresh: -22, ratio: 4 },
+                { btn: ui.btnCompPresetGuitar, thresh: -18, ratio: 3 },
+                { btn: ui.btnCompPresetLimiter, thresh: -10, ratio: 12 }
+            ];
+            presets.forEach(p => {
+                const isMatch = compThresholdDb === p.thresh && compRatio === p.ratio;
+                if (isMatch) {
+                    p.btn.classList.remove('bg-slate-900', 'text-slate-300', 'border-slate-700');
+                    p.btn.classList.add('bg-indigo-900', 'text-indigo-100', 'border-indigo-400');
+                } else {
+                    p.btn.classList.remove('bg-indigo-900', 'text-indigo-100', 'border-indigo-400');
+                    p.btn.classList.add('bg-slate-900', 'text-slate-300', 'border-slate-700');
+                }
+            });
+        }
+
+        function syncLiveCompressorParams() {
+            ui.compThreshVal.innerText = `${compThresholdDb}dB`;
+            ui.compRatioVal.innerText = `${compRatio}:1`;
+            updateCompressorPresetHighlight();
+
+            if (!liveCompressorNode || !liveMakeupGainNode || !audioCtx) return;
+            const now = audioCtx.currentTime;
+            if (isLiveCompressorOn) {
+                liveCompressorNode.threshold.setTargetAtTime(compThresholdDb, now, 0.015);
+                liveCompressorNode.knee.setTargetAtTime(6, now, 0.015);
+                liveCompressorNode.ratio.setTargetAtTime(compRatio, now, 0.015);
+                liveCompressorNode.attack.setTargetAtTime(compAttackSec, now, 0.015);
+                liveCompressorNode.release.setTargetAtTime(compReleaseSec, now, 0.015);
+                liveMakeupGainNode.gain.setTargetAtTime(Math.pow(10, compMakeupDb / 20), now, 0.015);
+            } else {
+                // Bypass แบบไร้เสียงคลิก (Unity 1:1)
+                liveCompressorNode.threshold.setTargetAtTime(0, now, 0.015);
+                liveCompressorNode.knee.setTargetAtTime(0, now, 0.015);
+                liveCompressorNode.ratio.setTargetAtTime(1, now, 0.015);
+                liveMakeupGainNode.gain.setTargetAtTime(1.0, now, 0.015);
+            }
+        }
+
+        function applyCompressorPreset(thresh, ratio, attack, release, makeup, autoEnable = true) {
+            compThresholdDb = Math.max(-50, Math.min(0, Math.round(thresh)));
+            compRatio = Math.max(1, Math.min(20, Math.round(ratio)));
+            compAttackSec = attack;
+            compReleaseSec = release;
+            compMakeupDb = makeup;
+
+            if (autoEnable && !isLiveCompressorOn) {
+                setLiveCompressorState(true);
+            } else {
+                syncLiveCompressorParams();
+            }
+        }
+
+        function setLiveCompressorState(enabled) {
+            isLiveCompressorOn = enabled;
+            if (isLiveCompressorOn) {
+                ui.btnLiveComp.innerText = '🎛️ Input Compressor: ON (กำลังคุมไดนามิก)';
+                ui.btnLiveComp.classList.remove('bg-slate-900', 'hover:bg-slate-700', 'text-indigo-300', 'border-indigo-500/50');
+                ui.btnLiveComp.classList.add('bg-indigo-600', 'hover:bg-indigo-500', 'text-white', 'border-indigo-300');
+            } else {
+                ui.btnLiveComp.innerText = '🎛️ Input Compressor: OFF';
+                ui.btnLiveComp.classList.remove('bg-indigo-600', 'hover:bg-indigo-500', 'text-white', 'border-indigo-300');
+                ui.btnLiveComp.classList.add('bg-slate-900', 'hover:bg-slate-700', 'text-indigo-300', 'border-indigo-500/50');
+                ui.compGrText.innerText = 'GR: 0.0 dB';
+                ui.compGrBar.style.width = '0%';
+            }
+            syncLiveCompressorParams();
+        }
+
+        ui.btnLiveComp.addEventListener('click', () => setLiveCompressorState(!isLiveCompressorOn));
+        ui.btnCompPresetVocal.addEventListener('click', () => applyCompressorPreset(-22, 4, 0.008, 0.18, 3, true));
+        ui.btnCompPresetGuitar.addEventListener('click', () => applyCompressorPreset(-18, 3, 0.015, 0.22, 2, true));
+        ui.btnCompPresetLimiter.addEventListener('click', () => applyCompressorPreset(-10, 12, 0.002, 0.10, 1, true));
+
+        ui.btnCompThreshDown.addEventListener('click', () => {
+            compThresholdDb = Math.max(-50, compThresholdDb - 1);
+            syncLiveCompressorParams();
+        });
+        ui.btnCompThreshUp.addEventListener('click', () => {
+            compThresholdDb = Math.min(0, compThresholdDb + 1);
+            syncLiveCompressorParams();
+        });
+        ui.btnCompRatioDown.addEventListener('click', () => {
+            compRatio = Math.max(1, compRatio - 1);
+            syncLiveCompressorParams();
+        });
+        ui.btnCompRatioUp.addEventListener('click', () => {
+            compRatio = Math.min(20, compRatio + 1);
+            syncLiveCompressorParams();
+        });
+
+        // ==========================================
+        // 10. ระบบ Live Audio Input + Auto Tuner + Noise Gate + Record
+        // ==========================================
+        function setTunerGateDb(newVal) {
+            tunerGateDb = Math.max(-60, Math.min(-10, Math.round(newVal)));
+            ui.tunerGateVal.innerText = `${tunerGateDb} dB`;
+            const markerPct = ((tunerGateDb + 60) / 60) * 100;
+            ui.tunerGateMarker.style.left = `${markerPct}%`;
+        }
+
+        ui.btnGateDown.addEventListener('click', () => setTunerGateDb(tunerGateDb - 1));
+        ui.btnGateUp.addEventListener('click', () => setTunerGateDb(tunerGateDb + 1));
+        ui.resetTunerGate.addEventListener('click', () => setTunerGateDb(-38));
+
+        ui.btnAutoGate.addEventListener('click', () => {
+            if (!isLiveInputOn) {
+                alert('กรุณากดเปิดรับสัญญาณเสียงเข้า (Live Input) ก่อนกด Auto Gate ครับ');
+                return;
+            }
+            if (isAutoGateSampling) return;
+
+            isAutoGateSampling = true;
+            autoGatePeakDb = -60;
+            ui.btnAutoGate.innerText = '⏳ กำลังวัดเสียงรบกวน...';
+            ui.btnAutoGate.classList.add('animate-pulse');
+
+            setTimeout(() => {
+                isAutoGateSampling = false;
+                ui.btnAutoGate.innerText = '🎯 Auto Gate';
+                ui.btnAutoGate.classList.remove('animate-pulse');
+                const calibrated = Math.min(-10, Math.max(-55, Math.ceil(autoGatePeakDb + 4)));
+                setTunerGateDb(calibrated);
+            }, 650);
+        });
+
         async function refreshAudioInputDevices() {
             if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
             try {
@@ -1033,19 +1351,21 @@
         ui.btnInputGainUp.addEventListener('click', () => setInputGainDb(inputGainDb + 1));
         ui.resetInputGain.addEventListener('click', () => setInputGainDb(0));
 
-        // Autocorrelation Pitch Detector สำหรับ Auto Tuner
-        function detectPitchFromTimeDomain(buf, sampleRate) {
+        function detectPitchFromTimeDomain(buf, sampleRate, gateRms) {
             const size = buf.length;
-            let rms = 0;
+            let sumSq = 0;
+            let peak = 0;
             for (let i = 0; i < size; i++) {
-                rms += buf[i] * buf[i];
+                const v = buf[i];
+                sumSq += v * v;
+                const absV = Math.abs(v);
+                if (absV > peak) peak = absV;
             }
-            rms = Math.sqrt(rms / size);
-            if (rms < 0.012) return -1; // Noise gate
+            const rms = Math.sqrt(sumSq / size);
+            if (rms < gateRms || peak === 0) return { freq: -1, rms };
 
-            // ตัดขอบสัญญาณที่ต่ำกว่า threshold เพื่อหาช่วงคาบเวลาแม่นยำขึ้น
             let r1 = 0, r2 = size - 1;
-            const thresh = 0.2;
+            const thresh = peak * 0.2;
             for (let i = 0; i < size / 2; i++) {
                 if (Math.abs(buf[i]) < thresh) { r1 = i; break; }
             }
@@ -1055,10 +1375,10 @@
 
             const trimmed = buf.slice(r1, r2);
             const n = trimmed.length;
-            if (n < 64) return -1;
+            if (n < 64) return { freq: -1, rms };
 
-            const minLag = Math.floor(sampleRate / 1400); // ~1400 Hz
-            const maxLag = Math.min(n - 2, Math.floor(sampleRate / 55)); // ~55 Hz (A1)
+            const minLag = Math.floor(sampleRate / 1400);
+            const maxLag = Math.min(n - 2, Math.floor(sampleRate / 55));
             const c = new Float32Array(maxLag + 2);
 
             for (let lag = 0; lag <= maxLag; lag++) {
@@ -1083,7 +1403,7 @@
                 }
             }
 
-            if (maxPos <= 0 || c[0] === 0 || (maxVal / c[0]) < 0.35) return -1;
+            if (maxPos <= 0 || c[0] === 0 || (maxVal / c[0]) < 0.35) return { freq: -1, rms };
 
             let T0 = maxPos;
             if (maxPos > 0 && maxPos < maxLag) {
@@ -1097,17 +1417,47 @@
                 }
             }
 
-            return sampleRate / T0;
+            return { freq: sampleRate / T0, rms };
         }
 
         function updateAutoTunerLoop() {
             if (!isLiveInputOn || !liveTunerAnalyser || !audioCtx) return;
 
+            // อัปเดตมิเตอร์ Gain Reduction ของ Input Compressor แบบเรียลไทม์
+            if (liveCompressorNode && isLiveCompressorOn) {
+                const reductionDb = Math.min(0, liveCompressorNode.reduction || 0);
+                ui.compGrText.innerText = `GR: ${reductionDb.toFixed(1)} dB`;
+                const grPct = Math.min(100, (Math.abs(reductionDb) / 18) * 100);
+                ui.compGrBar.style.width = `${grPct}%`;
+            }
+
             const timeData = new Float32Array(liveTunerAnalyser.fftSize);
             liveTunerAnalyser.getFloatTimeDomainData(timeData);
-            const freq = detectPitchFromTimeDomain(timeData, audioCtx.sampleRate);
 
-            if (freq > 50 && freq < 1500) {
+            const gateRms = Math.pow(10, tunerGateDb / 20);
+            const { freq, rms } = detectPitchFromTimeDomain(timeData, audioCtx.sampleRate, gateRms);
+
+            const dbfs = rms > 0.001 ? Math.max(-60, Math.min(0, 20 * Math.log10(rms))) : -60;
+            const levelPct = ((dbfs + 60) / 60) * 100;
+            ui.tunerLiveDbText.innerText = `In: ${Math.round(dbfs)} dB`;
+            ui.tunerLevelBar.style.width = `${levelPct}%`;
+
+            if (isAutoGateSampling && dbfs > autoGatePeakDb) {
+                autoGatePeakDb = dbfs;
+            }
+
+            if (rms < gateRms) {
+                ui.tunerLevelBar.className = 'h-full bg-slate-600 transition-all duration-75';
+                ui.tunerNoteText.innerText = '--';
+                ui.tunerNoteText.className = 'text-3xl font-black font-mono text-slate-500 tracking-tight';
+                ui.tunerCentsText.innerText = '0 cents';
+                ui.tunerFreqText.innerText = '0.0 Hz';
+                ui.tunerNeedle.style.left = '50%';
+                ui.tunerNeedle.className = 'absolute top-0 bottom-0 w-1.5 bg-slate-600 rounded-full transition-all duration-75';
+                ui.tunerStatusText.innerText = `🔇 ต่ำกว่า Gate (${tunerGateDb} dB)`;
+                ui.tunerStatusText.className = 'text-[11px] font-mono text-slate-400';
+            } else if (freq > 50 && freq < 1500) {
+                ui.tunerLevelBar.className = 'h-full bg-emerald-400 transition-all duration-75';
                 const midiFloat = 12 * Math.log2(freq / 440) + 69;
                 const nearestMidi = Math.round(midiFloat);
                 const cents = Math.round((midiFloat - nearestMidi) * 100);
@@ -1140,8 +1490,9 @@
                     ui.tunerStatusText.className = 'text-[11px] font-mono text-rose-400';
                 }
             } else {
-                ui.tunerStatusText.innerText = 'กำลังฟังสัญญาณ...';
-                ui.tunerStatusText.className = 'text-[11px] font-mono text-slate-400';
+                ui.tunerLevelBar.className = 'h-full bg-cyan-500 transition-all duration-75';
+                ui.tunerStatusText.innerText = 'กำลังวิเคราะห์โน้ต...';
+                ui.tunerStatusText.className = 'text-[11px] font-mono text-cyan-400';
             }
 
             tunerRafId = requestAnimationFrame(updateAutoTunerLoop);
@@ -1156,6 +1507,11 @@
             ui.tunerStatusText.className = 'text-[11px] font-mono text-slate-500';
             ui.tunerNeedle.style.left = '50%';
             ui.tunerNeedle.className = 'absolute top-0 bottom-0 w-1.5 bg-slate-500 rounded-full transition-all duration-75';
+            ui.tunerLiveDbText.innerText = 'In: -60 dB';
+            ui.tunerLevelBar.style.width = '0%';
+            ui.tunerLevelBar.className = 'h-full bg-slate-600 transition-all duration-75';
+            ui.compGrText.innerText = 'GR: 0.0 dB';
+            ui.compGrBar.style.width = '0%';
         }
 
         async function startLiveAudioInput() {
@@ -1179,7 +1535,6 @@
                 try {
                     liveStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
                 } catch (constraintErr) {
-                    // Fallback กรณีอุปกรณ์บางรุ่นไม่รองรับ exact constraint
                     liveStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 }
 
@@ -1189,6 +1544,10 @@
                 liveGainNode = audioCtx.createGain();
                 liveGainNode.gain.value = Math.pow(10, inputGainDb / 20);
 
+                liveCompressorNode = audioCtx.createDynamicsCompressor();
+                liveMakeupGainNode = audioCtx.createGain();
+                syncLiveCompressorParams();
+
                 liveTunerAnalyser = audioCtx.createAnalyser();
                 liveTunerAnalyser.fftSize = 2048;
 
@@ -1196,12 +1555,18 @@
                 liveMonitorGainNode.gain.value = isLiveMonitorOn ? 1.0 : 0.0;
 
                 // เส้นทาง Live Audio:
-                // 1) liveSource -> liveGain -> liveTunerAnalyser (จับโน้ตแม่นยำ)
-                // 2) liveSource -> liveGain -> liveMonitorGain -> masterEqLow -> EQ -> Pan -> Visualizer -> Output
+                // 1) liveSource -> liveGain -> liveTunerAnalyser (จับโน้ตแม่นยำก่อนเข้า Compressor)
+                // 2) liveSource -> liveGain -> liveCompressor -> liveMakeupGain -> liveMonitorGain -> masterEqLow -> Output
                 liveSourceNode.connect(liveGainNode);
                 liveGainNode.connect(liveTunerAnalyser);
-                liveGainNode.connect(liveMonitorGainNode);
+                liveGainNode.connect(liveCompressorNode);
+                liveCompressorNode.connect(liveMakeupGainNode);
+                liveMakeupGainNode.connect(liveMonitorGainNode);
                 liveMonitorGainNode.connect(masterEqLow);
+
+                if (isLiveRecording && liveRecordNode) {
+                    liveMakeupGainNode.connect(liveRecordNode);
+                }
 
                 isLiveInputOn = true;
                 ui.noAudio.classList.add('hidden');
@@ -1226,6 +1591,7 @@
             }
 
             isLiveInputOn = false;
+            isAutoGateSampling = false;
             if (tunerRafId) {
                 cancelAnimationFrame(tunerRafId);
                 tunerRafId = null;
@@ -1237,6 +1603,14 @@
             if (liveGainNode) {
                 try { liveGainNode.disconnect(); } catch (e) {}
                 liveGainNode = null;
+            }
+            if (liveCompressorNode) {
+                try { liveCompressorNode.disconnect(); } catch (e) {}
+                liveCompressorNode = null;
+            }
+            if (liveMakeupGainNode) {
+                try { liveMakeupGainNode.disconnect(); } catch (e) {}
+                liveMakeupGainNode = null;
             }
             if (liveMonitorGainNode) {
                 try { liveMonitorGainNode.disconnect(); } catch (e) {}
@@ -1306,10 +1680,18 @@
                 ui.btnRecIncludeTrack.classList.remove('text-amber-300', 'border-amber-600/60');
                 ui.btnRecIncludeTrack.classList.add('text-slate-400', 'border-slate-700');
             }
+            // อัปเดตการเชื่อมต่อเข้าช่องอัดทันทีหากกำลังอัดอยู่
+            if (isLiveRecording && liveRecordNode && trackGainNode) {
+                if (recIncludeTrack) {
+                    try { trackGainNode.connect(liveRecordNode); } catch (e) {}
+                } else {
+                    try { trackGainNode.disconnect(liveRecordNode); } catch (e) {}
+                }
+            }
         });
 
         function startLiveRecording() {
-            if (!isLiveInputOn || !liveGainNode || isLiveRecording) return;
+            if (!isLiveInputOn || !liveMakeupGainNode || isLiveRecording) return;
             ensureAudioContext();
 
             recordedChunksL = [];
@@ -1325,14 +1707,13 @@
                 recordedChunksR.push(new Float32Array(inR));
             };
 
-            // รับสัญญาณจาก Live Input (ผ่าน Gain แล้ว)
-            liveGainNode.connect(liveRecordNode);
-            // หากเลือกโหมดผสมเพลงคลอ และกำลังเล่นเพลงอยู่ ให้ดึงสัญญาณเพลงมารวมด้วย
-            if (recIncludeTrack && scriptNode) {
-                scriptNode.connect(liveRecordNode);
+            // อัดสัญญาณที่ผ่าน Input Gain + Input Compressor แล้ว
+            liveMakeupGainNode.connect(liveRecordNode);
+            // หากเลือกโหมดผสมเพลงคลอ ให้ดึงสัญญาณหลัง Track Volume มารวมตามสัดส่วนที่ปรับไว้
+            if (recIncludeTrack && trackGainNode) {
+                trackGainNode.connect(liveRecordNode);
             }
 
-            // ต่อเข้า Gain(0) -> Destination เพื่อให้ ScriptProcessor ทำงานโดยไม่เกิดเสียงซ้อน
             const silentSink = audioCtx.createGain();
             silentSink.gain.value = 0;
             liveRecordNode.connect(silentSink);
@@ -1361,8 +1742,8 @@
 
             if (liveRecordNode) {
                 liveRecordNode.onaudioprocess = null;
-                try { liveGainNode && liveGainNode.disconnect(liveRecordNode); } catch (e) {}
-                try { scriptNode && scriptNode.disconnect(liveRecordNode); } catch (e) {}
+                try { liveMakeupGainNode && liveMakeupGainNode.disconnect(liveRecordNode); } catch (e) {}
+                try { trackGainNode && trackGainNode.disconnect(liveRecordNode); } catch (e) {}
                 try { liveRecordNode.disconnect(); } catch (e) {}
                 if (liveRecordNode._silentSink) {
                     try { liveRecordNode._silentSink.disconnect(); } catch (e) {}
@@ -1399,7 +1780,6 @@
                 playlist.push(record);
                 renderPlaylist();
 
-                // หากยังไม่ได้โหลดเพลงใดไว้ ให้โหลดเทกที่เพิ่งอัดขึ้นมาเตรียมเล่นทันที
                 if (!audioBuffer) {
                     await loadTrack(playlist.length - 1, false);
                 }
@@ -1417,7 +1797,7 @@
         });
 
         // ==========================================
-        // 9. ระบบควบคุม 3-Band EQ & Instrument Focus Presets
+        // 11. ระบบควบคุม 3-Band EQ & Instrument Focus Presets
         // ==========================================
         function updatePresetHighlight() {
             const presets = [
@@ -1469,7 +1849,7 @@
         ui.btnEqHighUp.addEventListener('click', () => applyEqValues(eqLowDb, eqMidDb, eqHighDb + 1));
 
         // ==========================================
-        // 10. ระบบ Lookahead Metronome Click Track
+        // 12. ระบบ Lookahead Metronome Click Track
         // ==========================================
         function triggerBeatLed(beatIdx) {
             ui.beatDots.forEach((dot, idx) => {
@@ -1602,7 +1982,7 @@
         });
 
         // ==========================================
-        // 11. ฟังก์ชันอัปเดตค่าปุ่มปรับทีละสเต็ป (-1 / +1)
+        // 13. ฟังก์ชันอัปเดตค่าปุ่มปรับทีละสเต็ป (-1 / +1)
         // ==========================================
         function setTempoPercent(newVal) {
             tempoPercent = Math.max(50, Math.min(150, Math.round(newVal)));
@@ -1653,7 +2033,7 @@
         ui.btnPanRight.addEventListener('click', () => setPanStep(10));
 
         // ==========================================
-        // 12. ระบบจัดการ A-B Loop
+        // 14. ระบบจัดการ A-B Loop
         // ==========================================
         function clearABLoop() {
             loopPointA = null;
@@ -1720,7 +2100,7 @@
         ui.btnClearLoop.addEventListener('click', clearABLoop);
 
         // ==========================================
-        // 13. ระบบคลังเพลง (Playlist UI + IndexedDB Sync)
+        // 15. ระบบคลังเพลง (Playlist UI + IndexedDB Sync)
         // ==========================================
         function renderPlaylist() {
             const totalBytes = playlist.reduce((acc, t) => acc + (t.size || 0), 0);
@@ -1886,7 +2266,7 @@
         });
 
         // ==========================================
-        // 14. ระบบเล่นเสียง Web Audio + SoundTouchJS + Master Bus
+        // 16. ระบบเล่นเสียง Web Audio + SoundTouchJS + Track Volume + Master Bus
         // ==========================================
         async function loadTrack(index, autoPlay = false) {
             if (index < 0 || index >= playlist.length) return;
@@ -2028,11 +2408,8 @@
                 globalPosition = Math.min(audioBuffer.length, filter.sourcePosition);
             };
 
-            // เชื่อมต่อเข้า Master Bus (3-Band EQ -> Panning -> Analyser -> Output)
-            scriptNode.connect(masterEqLow);
-            if (isLiveRecording && recIncludeTrack && liveRecordNode) {
-                scriptNode.connect(liveRecordNode);
-            }
+            // ส่งสัญญาณเพลงเข้า trackGainNode ก่อนเข้า 3-Band EQ และ Master Output
+            scriptNode.connect(trackGainNode);
 
             isPlaying = true;
             if (isMetronomeOn) {
@@ -2161,9 +2538,12 @@
         });
 
         // ==========================================
-        // 15. โหลดรายการเพลงที่บันทึกไว้เมื่อเปิดแอป
+        // 17. โหลดรายการเพลงที่บันทึกไว้เมื่อเปิดแอป
         // ==========================================
         window.addEventListener('DOMContentLoaded', async () => {
+            setTunerGateDb(-38);
+            setTrackVolumePercent(100);
+            syncLiveCompressorParams();
             await refreshAudioInputDevices();
             try {
                 const savedTracks = await getAllTracksFromDB();
